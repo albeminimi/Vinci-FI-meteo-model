@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vinci Ensemble Viewer</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            background: #222;
+            font-family: 'Segoe UI', Arial, sans-serif;
+            color: #eee;
+            text-align: center;
+        }
+
+        h1 { margin-bottom: 30px; font-weight: 300; letter-spacing: 1px; }
+
+        .grid {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 30px;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding-bottom: 100px;
+        }
+
+        .chart-card {
+            background: white;
+            padding: 10px;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+            width: 100%;
+            position: relative;
+        }
+
+        .chart-card h3 {
+            color: #333;
+            margin: 0 0 10px 0;
+            text-align: left;
+            border-bottom: 2px solid #007bff;
+            padding-bottom: 5px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .chart-card img {
+            width: 100%;
+            height: auto;
+            display: block;
+            border-radius: 4px;
+        }
+
+        .refresh-btn {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            background: #28a745;
+            color: white;
+            border: none;
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            font-size: 30px;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.6);
+            z-index: 1000;
+            transition: transform 0.2s;
+        }
+        .refresh-btn:hover { transform: scale(1.1); background: #218838; }
+        .refresh-btn:active { transform: scale(0.95); }
+
+        .loading { font-size: 14px; color: #666; font-style: italic; }
+    </style>
+</head>
+<body>
+
+    <h1>Meteogrammi Ensemble - Vinci (FI)</h1>
+
+    <div class="grid" id="grid">
+        <!-- Charts injected here -->
+    </div>
+
+    <button class="refresh-btn" onclick="updateCharts()" title="Aggiorna Grafici">↻</button>
+
+    <script>
+        // Configurazione Vinci
+        const GEOID = '70549'; 
+        
+        const MODELS = [
+            { name: 'ECMWF (Europeo)', code: 'ecm', var: '201' },
+            { name: 'GFS (Americano)', code: 'gfs', var: '201' },
+            { name: 'GEM (Canadese)', code: 'gem', var: '201' },
+            { name: 'ICON (Tedesco - Solo Precip)', code: 'ico', var: '5' },
+            { name: 'AIFS (Artificial Intelligence)', code: 'aifs', var: '201' }
+        ];
+
+        // Funzione che ottiene la data di oggi formattata YYYY-MM-DD
+        function getTodayDate() {
+            return new Date().toISOString().split('T')[0];
+        }
+
+        function updateCharts() {
+            const container = document.getElementById('grid');
+            container.innerHTML = ''; // Pulisce tutto
+            const today = getTodayDate();
+            const timestamp = new Date().getTime(); // Anti-cache
+
+            MODELS.forEach(m => {
+                // Costruisce l'URL diretto all'immagine (scoperto dal file allegato)
+                // ens_image.php?geoid=...&var=...&model=...&member=ENS&bw=1
+                const imgUrl = `https://www.wetterzentrale.de/en/ens_image.php?geoid=${GEOID}&var=${m.var}&model=${m.code}&member=ENS&bw=1&date=${today}&_t=${timestamp}`;
+                
+                // Link alla pagina interattiva originale (per click)
+                const pageUrl = `https://www.wetterzentrale.de/en/show_diagrams.php?model=${m.code}&var=${m.var}&geoid=${GEOID}&lid=ENS&bw=1`;
+
+                const div = document.createElement('div');
+                div.className = 'chart-card';
+                div.innerHTML = `
+                    <h3>
+                        <a href="${pageUrl}" target="_blank" style="text-decoration:none; color:#007bff;">${m.name}</a>
+                        <span class="loading" id="load-${m.code}">Caricamento...</span>
+                    </h3>
+                    <img src="${imgUrl}" 
+                         alt="Grafico ${m.name}" 
+                         onload="document.getElementById('load-${m.code}').style.display='none'"
+                         onerror="this.alt='Errore caricamento immagine. Clicca sul titolo.'; document.getElementById('load-${m.code}').innerText='Errore'">
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        // Avvio iniziale
+        updateCharts();
+    </script>
+</body>
+</html>
