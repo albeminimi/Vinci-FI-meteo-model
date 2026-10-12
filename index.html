@@ -3,135 +3,635 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Vinci Ensemble Viewer</title>
+    <title>Meteogrammi Ensemble</title>
     <style>
-        body {
-            margin: 0;
-            padding: 20px;
-            background: #222;
-            font-family: 'Segoe UI', Arial, sans-serif;
-            color: #eee;
-            text-align: center;
+        :root {
+            --bg: #16181d;
+            --panel: #20232b;
+            --panel-2: #2a2e38;
+            --border: #353a46;
+            --text: #e8eaef;
+            --muted: #9aa1b0;
+            --accent: #3b8bff;
+            --accent-2: #2f6fd1;
+            --ok: #2fb36b;
+            --err: #e5534b;
+            --card: #ffffff;
+            --radius: 10px;
         }
 
-        h1 { margin-bottom: 30px; font-weight: 300; letter-spacing: 1px; }
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            background: var(--bg);
+            font-family: 'Segoe UI', system-ui, -apple-system, Arial, sans-serif;
+            color: var(--text);
+        }
+
+        /* ---------- Header ---------- */
+        header {
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            background: rgba(22, 24, 29, 0.92);
+            backdrop-filter: blur(8px);
+            border-bottom: 1px solid var(--border);
+        }
+
+        .header-inner {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 12px 16px;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 12px 16px;
+        }
+
+        .title {
+            flex: 1 1 260px;
+            min-width: 0;
+        }
+        .title h1 {
+            margin: 0;
+            font-size: 20px;
+            font-weight: 400;
+            letter-spacing: 0.5px;
+        }
+        .title h1 strong { font-weight: 600; }
+        .title .sub {
+            font-size: 12px;
+            color: var(--muted);
+            margin-top: 2px;
+        }
+
+        .controls {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 8px;
+        }
+
+        select, button, input {
+            font: inherit;
+            font-size: 14px;
+            color: var(--text);
+            background: var(--panel-2);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 8px 12px;
+        }
+        select { cursor: pointer; max-width: 100%; }
+        select:focus, input:focus, button:focus-visible {
+            outline: 2px solid var(--accent);
+            outline-offset: 1px;
+        }
+        button { cursor: pointer; transition: background 0.15s; }
+        button:hover { background: var(--border); }
+        button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+        button.primary:hover { background: var(--accent-2); }
+        button.danger:hover { background: var(--err); border-color: var(--err); color: #fff; }
+
+        /* ---------- Toolbar modelli ---------- */
+        .toolbar {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 16px 12px;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 8px;
+        }
+        .toolbar .label { font-size: 12px; color: var(--muted); margin-right: 4px; }
+
+        .chip {
+            font-size: 13px;
+            padding: 5px 12px;
+            border-radius: 999px;
+            background: transparent;
+            color: var(--muted);
+            border: 1px solid var(--border);
+            user-select: none;
+        }
+        .chip.on {
+            background: rgba(59, 139, 255, 0.15);
+            border-color: var(--accent);
+            color: var(--text);
+        }
+
+        .seg { display: inline-flex; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; margin-left: auto; }
+        .seg button { border: 0; border-radius: 0; padding: 5px 12px; font-size: 13px; background: transparent; color: var(--muted); }
+        .seg button.on { background: var(--panel-2); color: var(--text); }
+
+        /* ---------- Griglia grafici ---------- */
+        main {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px 16px 120px;
+        }
 
         .grid {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 30px;
-            max-width: 1200px;
-            margin: 0 auto;
-            padding-bottom: 100px;
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 20px;
+        }
+        .grid.cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        @media (max-width: 900px) {
+            .grid.cols-2 { grid-template-columns: 1fr; }
+            .seg { display: none; }
         }
 
         .chart-card {
-            background: white;
-            padding: 10px;
-            border-radius: 8px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
-            width: 100%;
-            position: relative;
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            overflow: hidden;
+            box-shadow: 0 4px 18px rgba(0, 0, 0, 0.35);
         }
 
-        .chart-card h3 {
-            color: #333;
-            margin: 0 0 10px 0;
-            text-align: left;
-            border-bottom: 2px solid #007bff;
-            padding-bottom: 5px;
+        .chart-head {
             display: flex;
+            align-items: center;
             justify-content: space-between;
+            gap: 8px;
+            padding: 10px 14px;
+            border-bottom: 1px solid var(--border);
         }
+        .chart-head h3 {
+            margin: 0;
+            font-size: 15px;
+            font-weight: 600;
+        }
+        .chart-head h3 .tag {
+            font-weight: 400;
+            font-size: 12px;
+            color: var(--muted);
+            margin-left: 6px;
+        }
+        .chart-head a {
+            font-size: 12px;
+            color: var(--accent);
+            text-decoration: none;
+            white-space: nowrap;
+        }
+        .chart-head a:hover { text-decoration: underline; }
 
-        .chart-card img {
+        .chart-body {
+            position: relative;
+            background: var(--card);
+            min-height: 220px;
+            cursor: zoom-in;
+        }
+        .chart-body img {
             width: 100%;
             height: auto;
             display: block;
-            border-radius: 4px;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        .chart-body.loaded img { opacity: 1; }
+
+        .status {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            color: #666;
+            font-size: 14px;
+        }
+        .chart-body.loaded .status { display: none; }
+        .chart-body.error { cursor: default; }
+        .chart-body.error .status { color: var(--err); }
+        .chart-body.error .spinner { display: none; }
+
+        .spinner {
+            width: 28px;
+            height: 28px;
+            border: 3px solid #ddd;
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .empty {
+            text-align: center;
+            color: var(--muted);
+            padding: 60px 0;
         }
 
+        /* ---------- Pulsante aggiorna ---------- */
         .refresh-btn {
             position: fixed;
-            bottom: 30px;
-            right: 30px;
-            background: #28a745;
-            color: white;
+            bottom: 24px;
+            right: 24px;
+            background: var(--ok);
             border: none;
-            width: 70px;
-            height: 70px;
+            color: #fff;
+            width: 60px;
+            height: 60px;
             border-radius: 50%;
-            font-size: 30px;
-            cursor: pointer;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.6);
-            z-index: 1000;
-            transition: transform 0.2s;
+            font-size: 26px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.6);
+            z-index: 90;
+            transition: transform 0.2s, background 0.2s;
         }
-        .refresh-btn:hover { transform: scale(1.1); background: #218838; }
+        .refresh-btn:hover { transform: scale(1.08); background: #27995b; }
         .refresh-btn:active { transform: scale(0.95); }
 
-        .loading { font-size: 14px; color: #666; font-style: italic; }
+        /* ---------- Lightbox ---------- */
+        .lightbox {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.88);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 300;
+            padding: 16px;
+            cursor: zoom-out;
+        }
+        .lightbox.open { display: flex; }
+        .lightbox img {
+            max-width: 100%;
+            max-height: 100%;
+            background: #fff;
+            border-radius: 6px;
+        }
+
+        /* ---------- Dialog località ---------- */
+        dialog {
+            width: min(560px, calc(100vw - 32px));
+            background: var(--panel);
+            color: var(--text);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 0;
+        }
+        dialog::backdrop { background: rgba(0, 0, 0, 0.6); }
+
+        .dlg-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 14px 18px;
+            border-bottom: 1px solid var(--border);
+        }
+        .dlg-head h2 { margin: 0; font-size: 17px; font-weight: 600; }
+        .dlg-body { padding: 16px 18px 20px; }
+
+        .loc-list {
+            list-style: none;
+            margin: 0 0 18px;
+            padding: 0;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            max-height: 240px;
+            overflow-y: auto;
+        }
+        .loc-list li {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 12px;
+            border-bottom: 1px solid var(--border);
+        }
+        .loc-list li:last-child { border-bottom: none; }
+        .loc-list .name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .loc-list .gid { font-size: 12px; color: var(--muted); font-family: monospace; }
+        .loc-list button { padding: 4px 10px; font-size: 12px; }
+
+        .form-row { display: flex; flex-direction: column; gap: 4px; margin-bottom: 12px; }
+        .form-row label { font-size: 13px; color: var(--muted); }
+        .form-row input { width: 100%; }
+
+        .hint {
+            font-size: 12px;
+            color: var(--muted);
+            line-height: 1.5;
+            background: var(--panel-2);
+            border-radius: 8px;
+            padding: 10px 12px;
+            margin-bottom: 14px;
+        }
+        .hint code { color: var(--text); word-break: break-all; }
+        .hint a { color: var(--accent); }
+
+        .form-error { color: var(--err); font-size: 13px; min-height: 18px; margin-bottom: 8px; }
+        .form-actions { display: flex; justify-content: flex-end; gap: 8px; }
     </style>
 </head>
 <body>
 
-    <h1>Meteogrammi Ensemble - Vinci (FI)</h1>
+    <header>
+        <div class="header-inner">
+            <div class="title">
+                <h1>Meteogrammi Ensemble · <strong id="locTitle">—</strong></h1>
+                <div class="sub" id="updated">Fonte: Wetterzentrale.de</div>
+            </div>
+            <div class="controls">
+                <select id="locSelect" aria-label="Località"></select>
+                <button id="manageBtn" title="Aggiungi o rimuovi località">📍 Località</button>
+            </div>
+        </div>
+        <div class="toolbar">
+            <span class="label">Modelli:</span>
+            <span id="modelChips"></span>
+            <div class="seg" role="group" aria-label="Layout">
+                <button data-cols="1" title="Una colonna">▭</button>
+                <button data-cols="2" title="Due colonne">▯▯</button>
+            </div>
+        </div>
+    </header>
 
-    <div class="grid" id="grid">
-        <!-- Charts injected here -->
-    </div>
+    <main>
+        <div class="grid" id="grid"></div>
+    </main>
 
-    <button class="refresh-btn" onclick="updateCharts()" title="Aggiorna Grafici">↻</button>
+    <button class="refresh-btn" id="refreshBtn" title="Aggiorna grafici">↻</button>
+
+    <div class="lightbox" id="lightbox"><img alt=""></div>
+
+    <dialog id="locDialog">
+        <div class="dlg-head">
+            <h2>Gestisci località</h2>
+            <button id="closeDlg" aria-label="Chiudi">✕</button>
+        </div>
+        <div class="dlg-body">
+            <ul class="loc-list" id="locList"></ul>
+
+            <form id="addForm" novalidate>
+                <div class="hint">
+                    Per aggiungere una località, cercala su
+                    <a href="https://www.wetterzentrale.de/en/show_diagrams.php?model=ecm&var=201&lid=ENS&bw=1" target="_blank" rel="noopener">Wetterzentrale</a>,
+                    apri il suo meteogramma e copia il link dalla barra degli indirizzi
+                    (contiene <code>geoid=…</code>). Puoi incollare il link intero o solo il numero.
+                </div>
+                <div class="form-row">
+                    <label for="locName">Nome</label>
+                    <input id="locName" placeholder="Es. Firenze" maxlength="60" autocomplete="off">
+                </div>
+                <div class="form-row">
+                    <label for="locGeoid">Link Wetterzentrale o geoid</label>
+                    <input id="locGeoid" placeholder="https://www.wetterzentrale.de/...geoid=12345..." autocomplete="off">
+                </div>
+                <div class="form-error" id="formError"></div>
+                <div class="form-actions">
+                    <button type="submit" class="primary">Aggiungi</button>
+                </div>
+            </form>
+        </div>
+    </dialog>
 
     <script>
-        // Configurazione Vinci
-        const GEOID = '70549'; 
-        
-        const MODELS = [
-            { name: 'ECMWF (Europeo)', code: 'ecm', var: '201' },
-            { name: 'GFS (Americano)', code: 'gfs', var: '201' },
-            { name: 'GEM (Canadese)', code: 'gem', var: '201' },
-            { name: 'ICON (Tedesco - Solo Precip)', code: 'ico', var: '5' },
-            { name: 'AIFS (Artificial Intelligence)', code: 'aifs', var: '201' }
+        // ---------------- Configurazione ----------------
+        const DEFAULT_LOCATIONS = [
+            { name: 'Vinci (FI)', geoid: '70549' }
         ];
 
-        // Funzione che ottiene la data di oggi formattata YYYY-MM-DD
-        function getTodayDate() {
+        const MODELS = [
+            { name: 'ECMWF', desc: 'Europeo',                 code: 'ecm',  var: '201' },
+            { name: 'GFS',   desc: 'Americano',               code: 'gfs',  var: '201' },
+            { name: 'GEM',   desc: 'Canadese',                code: 'gem',  var: '201' },
+            { name: 'ICON',  desc: 'Tedesco – solo precip.',  code: 'ico',  var: '5'   },
+            { name: 'AIFS',  desc: 'Intelligenza artificiale', code: 'aifs', var: '201' }
+        ];
+
+        const STORE_KEY = 'meteoEnsemble.v1';
+
+        // ---------------- Stato (salvato nel browser) ----------------
+        function loadState() {
+            let saved = {};
+            try { saved = JSON.parse(localStorage.getItem(STORE_KEY)) || {}; } catch (e) {}
+            const locations = Array.isArray(saved.locations) && saved.locations.length
+                ? saved.locations.filter(l => l && /^\d+$/.test(l.geoid) && typeof l.name === 'string')
+                : DEFAULT_LOCATIONS.slice();
+            return {
+                locations: locations.length ? locations : DEFAULT_LOCATIONS.slice(),
+                current: saved.current,
+                hidden: Array.isArray(saved.hidden) ? saved.hidden : [],
+                cols: saved.cols === 2 ? 2 : 1
+            };
+        }
+
+        function saveState() {
+            try { localStorage.setItem(STORE_KEY, JSON.stringify(state)); } catch (e) {}
+        }
+
+        const state = loadState();
+
+        // Permette link diretti tipo index.html?geoid=12345&name=Firenze
+        (function applyUrlParams() {
+            const p = new URLSearchParams(location.search);
+            const gid = p.get('geoid');
+            if (gid && /^\d+$/.test(gid)) {
+                if (!state.locations.some(l => l.geoid === gid)) {
+                    state.locations.push({ name: (p.get('name') || 'Località ' + gid).slice(0, 60), geoid: gid });
+                }
+                state.current = gid;
+            }
+        })();
+
+        if (!state.locations.some(l => l.geoid === state.current)) {
+            state.current = state.locations[0].geoid;
+        }
+
+        const currentLocation = () => state.locations.find(l => l.geoid === state.current);
+
+        // ---------------- Utilità ----------------
+        const $ = id => document.getElementById(id);
+
+        function el(tag, props = {}, children = []) {
+            const node = document.createElement(tag);
+            Object.assign(node, props);
+            children.forEach(c => node.append(c));
+            return node;
+        }
+
+        function todayDate() {
             return new Date().toISOString().split('T')[0];
         }
 
-        function updateCharts() {
-            const container = document.getElementById('grid');
-            container.innerHTML = ''; // Pulisce tutto
-            const today = getTodayDate();
-            const timestamp = new Date().getTime(); // Anti-cache
+        function parseGeoid(input) {
+            const s = input.trim();
+            if (/^\d+$/.test(s)) return s;
+            const m = s.match(/[?&]geoid=(\d+)/i);
+            return m ? m[1] : null;
+        }
 
+        // ---------------- Rendering ----------------
+        function renderLocationSelect() {
+            const sel = $('locSelect');
+            sel.innerHTML = '';
+            state.locations.forEach(l => {
+                sel.append(el('option', { value: l.geoid, textContent: l.name, selected: l.geoid === state.current }));
+            });
+            const loc = currentLocation();
+            $('locTitle').textContent = loc.name;
+            document.title = 'Meteogrammi Ensemble – ' + loc.name;
+        }
+
+        function renderModelChips() {
+            const wrap = $('modelChips');
+            wrap.innerHTML = '';
             MODELS.forEach(m => {
-                // Costruisce l'URL diretto all'immagine (scoperto dal file allegato)
-                // ens_image.php?geoid=...&var=...&model=...&member=ENS&bw=1
-                const imgUrl = `https://www.wetterzentrale.de/en/ens_image.php?geoid=${GEOID}&var=${m.var}&model=${m.code}&member=ENS&bw=1&date=${today}&_t=${timestamp}`;
-                
-                // Link alla pagina interattiva originale (per click)
-                const pageUrl = `https://www.wetterzentrale.de/en/show_diagrams.php?model=${m.code}&var=${m.var}&geoid=${GEOID}&lid=ENS&bw=1`;
-
-                const div = document.createElement('div');
-                div.className = 'chart-card';
-                div.innerHTML = `
-                    <h3>
-                        <a href="${pageUrl}" target="_blank" style="text-decoration:none; color:#007bff;">${m.name}</a>
-                        <span class="loading" id="load-${m.code}">Caricamento...</span>
-                    </h3>
-                    <img src="${imgUrl}" 
-                         alt="Grafico ${m.name}" 
-                         onload="document.getElementById('load-${m.code}').style.display='none'"
-                         onerror="this.alt='Errore caricamento immagine. Clicca sul titolo.'; document.getElementById('load-${m.code}').innerText='Errore'">
-                `;
-                container.appendChild(div);
+                const on = !state.hidden.includes(m.code);
+                const chip = el('button', {
+                    className: 'chip' + (on ? ' on' : ''),
+                    textContent: m.name,
+                    title: m.desc
+                });
+                chip.setAttribute('aria-pressed', on);
+                chip.addEventListener('click', () => {
+                    state.hidden = on ? state.hidden.concat(m.code) : state.hidden.filter(c => c !== m.code);
+                    saveState();
+                    renderModelChips();
+                    updateCharts();
+                });
+                wrap.append(chip, ' ');
             });
         }
 
-        // Avvio iniziale
+        function renderLayout() {
+            $('grid').classList.toggle('cols-2', state.cols === 2);
+            document.querySelectorAll('.seg button').forEach(b => {
+                b.classList.toggle('on', Number(b.dataset.cols) === state.cols);
+            });
+        }
+
+        function updateCharts() {
+            const grid = $('grid');
+            grid.innerHTML = '';
+            const loc = currentLocation();
+            const today = todayDate();
+            const ts = Date.now(); // anti-cache
+
+            const visible = MODELS.filter(m => !state.hidden.includes(m.code));
+            if (!visible.length) {
+                grid.append(el('div', { className: 'empty', textContent: 'Nessun modello selezionato.' }));
+                return;
+            }
+
+            visible.forEach(m => {
+                const gid = encodeURIComponent(loc.geoid);
+                const imgUrl = `https://www.wetterzentrale.de/en/ens_image.php?geoid=${gid}&var=${m.var}&model=${m.code}&member=ENS&bw=1&date=${today}&_t=${ts}`;
+                const pageUrl = `https://www.wetterzentrale.de/en/show_diagrams.php?model=${m.code}&var=${m.var}&geoid=${gid}&lid=ENS&bw=1`;
+
+                const statusText = el('span', { textContent: 'Caricamento…' });
+                const status = el('div', { className: 'status' }, [el('div', { className: 'spinner' }), statusText]);
+                const img = el('img', { alt: `Meteogramma ${m.name} – ${loc.name}`, loading: 'lazy' });
+                const body = el('div', { className: 'chart-body' }, [img, status]);
+
+                img.addEventListener('load', () => body.classList.add('loaded'));
+                img.addEventListener('error', () => {
+                    body.classList.add('error');
+                    statusText.textContent = 'Immagine non disponibile – apri il grafico originale.';
+                });
+                body.addEventListener('click', () => {
+                    if (body.classList.contains('loaded')) openLightbox(img.src, img.alt);
+                });
+                img.src = imgUrl;
+
+                const title = el('h3', { textContent: m.name }, [el('span', { className: 'tag', textContent: m.desc })]);
+                const link = el('a', { href: pageUrl, target: '_blank', rel: 'noopener', textContent: 'Apri originale ↗' });
+                const head = el('div', { className: 'chart-head' }, [title, link]);
+
+                grid.append(el('div', { className: 'chart-card' }, [head, body]));
+            });
+
+            const now = new Date();
+            $('updated').textContent = `Fonte: Wetterzentrale.de · aggiornato alle ${now.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })}`;
+        }
+
+        // ---------------- Lightbox ----------------
+        function openLightbox(src, alt) {
+            const lb = $('lightbox');
+            const img = lb.querySelector('img');
+            img.src = src;
+            img.alt = alt;
+            lb.classList.add('open');
+        }
+        $('lightbox').addEventListener('click', () => $('lightbox').classList.remove('open'));
+        document.addEventListener('keydown', e => {
+            if (e.key === 'Escape') $('lightbox').classList.remove('open');
+        });
+
+        // ---------------- Gestione località ----------------
+        function renderLocationList() {
+            const list = $('locList');
+            list.innerHTML = '';
+            state.locations.forEach(l => {
+                const del = el('button', { className: 'danger', textContent: 'Rimuovi', disabled: state.locations.length === 1 });
+                del.addEventListener('click', () => {
+                    state.locations = state.locations.filter(x => x.geoid !== l.geoid);
+                    if (state.current === l.geoid) state.current = state.locations[0].geoid;
+                    saveState();
+                    renderLocationList();
+                    renderLocationSelect();
+                    updateCharts();
+                });
+                list.append(el('li', {}, [
+                    el('span', { className: 'name', textContent: l.name }),
+                    el('span', { className: 'gid', textContent: '#' + l.geoid }),
+                    del
+                ]));
+            });
+        }
+
+        $('manageBtn').addEventListener('click', () => {
+            renderLocationList();
+            $('formError').textContent = '';
+            $('locDialog').showModal();
+        });
+        $('closeDlg').addEventListener('click', () => $('locDialog').close());
+
+        $('addForm').addEventListener('submit', e => {
+            e.preventDefault();
+            const name = $('locName').value.trim();
+            const geoid = parseGeoid($('locGeoid').value);
+            const err = $('formError');
+
+            if (!name) { err.textContent = 'Inserisci un nome.'; return; }
+            if (!geoid) { err.textContent = 'Link o geoid non valido: deve contenere "geoid=" seguito da un numero.'; return; }
+            const existing = state.locations.find(l => l.geoid === geoid);
+            if (existing) { err.textContent = `Questa località è già presente come "${existing.name}".`; return; }
+
+            state.locations.push({ name, geoid });
+            state.current = geoid;
+            saveState();
+            $('addForm').reset();
+            err.textContent = '';
+            $('locDialog').close();
+            renderLocationSelect();
+            updateCharts();
+        });
+
+        // ---------------- Eventi principali ----------------
+        $('locSelect').addEventListener('change', e => {
+            state.current = e.target.value;
+            saveState();
+            renderLocationSelect();
+            updateCharts();
+        });
+
+        document.querySelectorAll('.seg button').forEach(b => {
+            b.addEventListener('click', () => {
+                state.cols = Number(b.dataset.cols);
+                saveState();
+                renderLayout();
+            });
+        });
+
+        $('refreshBtn').addEventListener('click', updateCharts);
+
+        // ---------------- Avvio ----------------
+        renderLocationSelect();
+        renderModelChips();
+        renderLayout();
         updateCharts();
     </script>
 </body>
