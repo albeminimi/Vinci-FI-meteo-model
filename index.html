@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Meteogrammi Ensemble</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.js"></script>
     <style>
         :root {
             --bg: #16181d;
@@ -16,7 +17,6 @@
             --accent-2: #2f6fd1;
             --ok: #2fb36b;
             --err: #e5534b;
-            --card: #ffffff;
             --radius: 10px;
         }
 
@@ -34,44 +34,30 @@
             position: sticky;
             top: 0;
             z-index: 100;
-            background: rgba(22, 24, 29, 0.92);
+            background: rgba(22, 24, 29, 0.94);
             backdrop-filter: blur(8px);
             border-bottom: 1px solid var(--border);
         }
 
-        .header-inner {
+        @media (max-width: 600px) { header { position: static; } }
+
+        .header-inner, .toolbar {
             max-width: 1400px;
             margin: 0 auto;
             padding: 12px 16px;
             display: flex;
             flex-wrap: wrap;
             align-items: center;
-            gap: 12px 16px;
+            gap: 10px 14px;
         }
+        .toolbar { padding-top: 0; }
 
-        .title {
-            flex: 1 1 260px;
-            min-width: 0;
-        }
-        .title h1 {
-            margin: 0;
-            font-size: 20px;
-            font-weight: 400;
-            letter-spacing: 0.5px;
-        }
+        .title { flex: 1 1 260px; min-width: 0; }
+        .title h1 { margin: 0; font-size: 20px; font-weight: 400; letter-spacing: 0.5px; }
         .title h1 strong { font-weight: 600; }
-        .title .sub {
-            font-size: 12px;
-            color: var(--muted);
-            margin-top: 2px;
-        }
+        .title .sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
 
-        .controls {
-            display: flex;
-            flex-wrap: wrap;
-            align-items: center;
-            gap: 8px;
-        }
+        .controls { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
 
         select, button, input {
             font: inherit;
@@ -83,27 +69,16 @@
             padding: 8px 12px;
         }
         select { cursor: pointer; max-width: 100%; }
-        select:focus, input:focus, button:focus-visible {
-            outline: 2px solid var(--accent);
-            outline-offset: 1px;
-        }
+        select:focus, input:focus, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
         button { cursor: pointer; transition: background 0.15s; }
-        button:hover { background: var(--border); }
+        button:hover:not(:disabled) { background: var(--border); }
+        button:disabled { opacity: 0.4; cursor: not-allowed; }
         button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
         button.primary:hover { background: var(--accent-2); }
-        button.danger:hover { background: var(--err); border-color: var(--err); color: #fff; }
+        button.danger:hover:not(:disabled) { background: var(--err); border-color: var(--err); color: #fff; }
 
-        /* ---------- Toolbar modelli ---------- */
-        .toolbar {
-            max-width: 1400px;
-            margin: 0 auto;
-            padding: 0 16px 12px;
-            display: flex;
-            flex-wrap: wrap;
-            align-items: center;
-            gap: 8px;
-        }
-        .toolbar .label { font-size: 12px; color: var(--muted); margin-right: 4px; }
+        .group { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+        .group .label { font-size: 12px; color: var(--muted); }
 
         .chip {
             font-size: 13px;
@@ -114,32 +89,33 @@
             border: 1px solid var(--border);
             user-select: none;
         }
-        .chip.on {
-            background: rgba(59, 139, 255, 0.15);
-            border-color: var(--accent);
-            color: var(--text);
-        }
+        .chip.on { background: rgba(59, 139, 255, 0.15); border-color: var(--accent); color: var(--text); }
 
-        .seg { display: inline-flex; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; margin-left: auto; }
-        .seg button { border: 0; border-radius: 0; padding: 5px 12px; font-size: 13px; background: transparent; color: var(--muted); }
+        .seg { display: inline-flex; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+        .seg button { border: 0; border-radius: 0; padding: 6px 12px; font-size: 13px; background: transparent; color: var(--muted); }
         .seg button.on { background: var(--panel-2); color: var(--text); }
 
-        /* ---------- Griglia grafici ---------- */
-        main {
-            max-width: 1400px;
-            margin: 0 auto;
-            padding: 20px 16px 120px;
+        .spacer { flex: 1; }
+        #varSelect { padding: 6px 10px; font-size: 13px; }
+
+        /* ---------- Griglia ---------- */
+        main { max-width: 1400px; margin: 0 auto; padding: 20px 16px 120px; }
+
+        .notice {
+            font-size: 13px;
+            color: var(--muted);
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 10px 14px;
+            margin-bottom: 16px;
         }
 
-        .grid {
-            display: grid;
-            grid-template-columns: 1fr;
-            gap: 20px;
-        }
+        .grid { display: grid; grid-template-columns: 1fr; gap: 20px; }
         .grid.cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
         @media (max-width: 900px) {
             .grid.cols-2 { grid-template-columns: 1fr; }
-            .seg { display: none; }
+            .layout-seg { display: none; }
         }
 
         .chart-card {
@@ -152,45 +128,47 @@
 
         .chart-head {
             display: flex;
-            align-items: center;
+            align-items: flex-start;
             justify-content: space-between;
             gap: 8px;
             padding: 10px 14px;
             border-bottom: 1px solid var(--border);
         }
-        .chart-head h3 {
-            margin: 0;
-            font-size: 15px;
+        .chart-head h3 { margin: 0; font-size: 15px; font-weight: 600; }
+        .chart-head h3 .tag { font-weight: 400; font-size: 12px; color: var(--muted); margin-left: 6px; }
+        .chart-head .facts { font-size: 12px; color: var(--muted); margin-top: 3px; }
+        .head-actions { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+        .head-actions a { font-size: 12px; color: var(--accent); text-decoration: none; white-space: nowrap; }
+        .head-actions a:hover { text-decoration: underline; }
+        .info-btn {
+            width: 28px; height: 28px; padding: 0;
+            border-radius: 50%;
+            font-size: 14px;
             font-weight: 600;
-        }
-        .chart-head h3 .tag {
-            font-weight: 400;
-            font-size: 12px;
+            font-family: Georgia, serif;
+            font-style: italic;
             color: var(--muted);
-            margin-left: 6px;
         }
-        .chart-head a {
-            font-size: 12px;
-            color: var(--accent);
-            text-decoration: none;
-            white-space: nowrap;
-        }
-        .chart-head a:hover { text-decoration: underline; }
+        .info-btn.on { color: var(--text); border-color: var(--accent); }
 
-        .chart-body {
-            position: relative;
-            background: var(--card);
-            min-height: 220px;
-            cursor: zoom-in;
+        .model-info {
+            display: none;
+            font-size: 13px;
+            line-height: 1.5;
+            color: var(--muted);
+            padding: 10px 14px;
+            border-bottom: 1px solid var(--border);
+            background: var(--panel-2);
         }
-        .chart-body img {
-            width: 100%;
-            height: auto;
-            display: block;
-            opacity: 0;
-            transition: opacity 0.3s;
-        }
-        .chart-body.loaded img { opacity: 1; }
+        .model-info.open { display: block; }
+
+        .chart-body { position: relative; min-height: 220px; }
+        .chart-body.canvas { height: 340px; padding: 8px 8px 4px; }
+        @media (max-width: 600px) { .chart-body.canvas { height: 280px; } }
+
+        .chart-body.image { background: #fff; cursor: zoom-in; }
+        .chart-body.image img { width: 100%; height: auto; display: block; opacity: 0; transition: opacity 0.3s; }
+        .chart-body.image.loaded img { opacity: 1; }
 
         .status {
             position: absolute;
@@ -200,72 +178,72 @@
             align-items: center;
             justify-content: center;
             gap: 10px;
-            color: #666;
+            color: var(--muted);
             font-size: 14px;
+            text-align: center;
+            padding: 0 20px;
         }
+        .chart-body.image .status { color: #666; }
         .chart-body.loaded .status { display: none; }
         .chart-body.error { cursor: default; }
         .chart-body.error .status { color: var(--err); }
-        .chart-body.error .spinner { display: none; }
+        .chart-body.error .spinner, .chart-body.na .spinner { display: none; }
 
         .spinner {
-            width: 28px;
-            height: 28px;
-            border: 3px solid #ddd;
+            width: 28px; height: 28px;
+            border: 3px solid var(--border);
             border-top-color: var(--accent);
             border-radius: 50%;
             animation: spin 0.8s linear infinite;
         }
         @keyframes spin { to { transform: rotate(360deg); } }
 
-        .empty {
-            text-align: center;
+        .legend {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px 14px;
+            font-size: 12px;
             color: var(--muted);
-            padding: 60px 0;
+            padding: 4px 14px 10px;
         }
+        .legend i { display: inline-block; width: 18px; height: 3px; vertical-align: middle; margin-right: 5px; border-radius: 2px; }
+
+        .empty { text-align: center; color: var(--muted); padding: 60px 0; }
 
         /* ---------- Pulsante aggiorna ---------- */
         .refresh-btn {
             position: fixed;
-            bottom: 24px;
-            right: 24px;
+            bottom: 24px; right: 24px;
             background: var(--ok);
             border: none;
             color: #fff;
-            width: 60px;
-            height: 60px;
+            width: 60px; height: 60px;
             border-radius: 50%;
             font-size: 26px;
             box-shadow: 0 4px 15px rgba(0, 0, 0, 0.6);
             z-index: 90;
             transition: transform 0.2s, background 0.2s;
         }
-        .refresh-btn:hover { transform: scale(1.08); background: #27995b; }
+        .refresh-btn:hover { transform: scale(1.08); background: #27995b !important; }
         .refresh-btn:active { transform: scale(0.95); }
 
         /* ---------- Lightbox ---------- */
         .lightbox {
-            position: fixed;
-            inset: 0;
+            position: fixed; inset: 0;
             background: rgba(0, 0, 0, 0.88);
             display: none;
-            align-items: center;
-            justify-content: center;
+            align-items: center; justify-content: center;
             z-index: 300;
             padding: 16px;
             cursor: zoom-out;
         }
         .lightbox.open { display: flex; }
-        .lightbox img {
-            max-width: 100%;
-            max-height: 100%;
-            background: #fff;
-            border-radius: 6px;
-        }
+        .lightbox img { max-width: 100%; max-height: 100%; background: #fff; border-radius: 6px; }
 
-        /* ---------- Dialog località ---------- */
+        /* ---------- Dialog ---------- */
         dialog {
-            width: min(560px, calc(100vw - 32px));
+            width: min(600px, calc(100vw - 32px));
+            max-height: calc(100vh - 48px);
             background: var(--panel);
             color: var(--text);
             border: 1px solid var(--border);
@@ -275,54 +253,79 @@
         dialog::backdrop { background: rgba(0, 0, 0, 0.6); }
 
         .dlg-head {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
+            display: flex; align-items: center; justify-content: space-between;
             padding: 14px 18px;
             border-bottom: 1px solid var(--border);
+            position: sticky; top: 0;
+            background: var(--panel);
         }
         .dlg-head h2 { margin: 0; font-size: 17px; font-weight: 600; }
         .dlg-body { padding: 16px 18px 20px; }
+        .dlg-body h4 { margin: 18px 0 8px; font-size: 13px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; }
+        .dlg-body h4:first-child { margin-top: 0; }
 
-        .loc-list {
+        .search-box { position: relative; }
+        .search-box input { width: 100%; padding-left: 36px; }
+        .search-box::before {
+            content: '🔍';
+            position: absolute; left: 11px; top: 50%; transform: translateY(-50%);
+            font-size: 14px; opacity: 0.7;
+        }
+
+        .results, .loc-list {
             list-style: none;
-            margin: 0 0 18px;
+            margin: 8px 0 0;
             padding: 0;
             border: 1px solid var(--border);
             border-radius: 8px;
-            max-height: 240px;
+            max-height: 260px;
             overflow-y: auto;
         }
-        .loc-list li {
-            display: flex;
-            align-items: center;
-            gap: 10px;
+        .results:empty { display: none; }
+        .results li, .loc-list li {
+            display: flex; align-items: center; gap: 10px;
             padding: 8px 12px;
             border-bottom: 1px solid var(--border);
         }
-        .loc-list li:last-child { border-bottom: none; }
-        .loc-list .name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-        .loc-list .gid { font-size: 12px; color: var(--muted); font-family: monospace; }
-        .loc-list button { padding: 4px 10px; font-size: 12px; }
+        .results li:last-child, .loc-list li:last-child { border-bottom: none; }
+        .results li { cursor: pointer; }
+        .results li:hover, .results li:focus { background: var(--panel-2); outline: none; }
+        .results li.msg { cursor: default; color: var(--muted); font-size: 13px; }
+        .results li.msg:hover { background: none; }
 
-        .form-row { display: flex; flex-direction: column; gap: 4px; margin-bottom: 12px; }
+        .place { flex: 1; min-width: 0; }
+        .place .n { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .place .d { font-size: 12px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .loc-list li.current .n::after { content: ' ●'; color: var(--accent); font-size: 11px; }
+        .loc-list button, .results button { padding: 4px 10px; font-size: 12px; }
+
+        details.adv { margin-top: 18px; }
+        details.adv summary { cursor: pointer; font-size: 13px; color: var(--muted); }
+        details.adv[open] summary { margin-bottom: 10px; }
+
+        .form-row { display: flex; flex-direction: column; gap: 4px; margin-bottom: 10px; }
         .form-row label { font-size: 13px; color: var(--muted); }
         .form-row input { width: 100%; }
 
         .hint {
-            font-size: 12px;
-            color: var(--muted);
-            line-height: 1.5;
+            font-size: 12px; color: var(--muted); line-height: 1.5;
             background: var(--panel-2);
             border-radius: 8px;
             padding: 10px 12px;
-            margin-bottom: 14px;
+            margin-bottom: 12px;
         }
         .hint code { color: var(--text); word-break: break-all; }
         .hint a { color: var(--accent); }
 
         .form-error { color: var(--err); font-size: 13px; min-height: 18px; margin-bottom: 8px; }
+        .form-ok { color: var(--ok); }
         .form-actions { display: flex; justify-content: flex-end; gap: 8px; }
+
+        .guide p, .guide li { font-size: 14px; line-height: 1.55; color: var(--text); }
+        .guide ul { padding-left: 18px; margin: 6px 0; }
+        .guide .m { margin-bottom: 12px; }
+        .guide .m b { color: var(--accent); }
+        .guide .m span { display: block; font-size: 13px; color: var(--muted); line-height: 1.5; }
     </style>
 </head>
 <body>
@@ -331,17 +334,32 @@
         <div class="header-inner">
             <div class="title">
                 <h1>Meteogrammi Ensemble · <strong id="locTitle">—</strong></h1>
-                <div class="sub" id="updated">Fonte: Wetterzentrale.de</div>
+                <div class="sub" id="updated"></div>
             </div>
             <div class="controls">
                 <select id="locSelect" aria-label="Località"></select>
-                <button id="manageBtn" title="Aggiungi o rimuovi località">📍 Località</button>
+                <button id="manageBtn" title="Cerca, aggiungi o rimuovi località">📍 Località</button>
+                <button id="guideBtn" title="Come leggere i grafici e i modelli">❓ Guida</button>
             </div>
         </div>
         <div class="toolbar">
-            <span class="label">Modelli:</span>
-            <span id="modelChips"></span>
-            <div class="seg" role="group" aria-label="Layout">
+            <div class="group">
+                <span class="label">Fonte:</span>
+                <div class="seg" id="sourceSeg">
+                    <button data-source="om" title="Grafici interattivi da Open-Meteo, disponibili per qualunque località">Interattivi</button>
+                    <button data-source="wz" title="Immagini originali di Wetterzentrale.de">Wetterzentrale</button>
+                </div>
+            </div>
+            <div class="group" id="varGroup">
+                <label class="label" for="varSelect">Variabile:</label>
+                <select id="varSelect"></select>
+            </div>
+            <div class="group">
+                <span class="label">Modelli:</span>
+                <span id="modelChips" class="group"></span>
+            </div>
+            <span class="spacer"></span>
+            <div class="seg layout-seg" role="group" aria-label="Layout">
                 <button data-cols="1" title="Una colonna">▭</button>
                 <button data-cols="2" title="Due colonne">▯▯</button>
             </div>
@@ -349,6 +367,7 @@
     </header>
 
     <main>
+        <div id="notice"></div>
         <div class="grid" id="grid"></div>
     </main>
 
@@ -356,65 +375,189 @@
 
     <div class="lightbox" id="lightbox"><img alt=""></div>
 
+    <!-- Dialog località -->
     <dialog id="locDialog">
         <div class="dlg-head">
-            <h2>Gestisci località</h2>
-            <button id="closeDlg" aria-label="Chiudi">✕</button>
+            <h2>Località</h2>
+            <button class="close" aria-label="Chiudi">✕</button>
         </div>
         <div class="dlg-body">
+            <h4>Cerca una località</h4>
+            <div class="search-box">
+                <input id="searchInput" type="search" placeholder="Es. Empoli, Firenze, Abetone…" autocomplete="off">
+            </div>
+            <ul class="results" id="results"></ul>
+
+            <h4>Le tue località</h4>
             <ul class="loc-list" id="locList"></ul>
 
-            <form id="addForm" novalidate>
-                <div class="hint">
-                    Per aggiungere una località, cercala su
-                    <a href="https://www.wetterzentrale.de/en/show_diagrams.php?model=ecm&var=201&lid=ENS&bw=1" target="_blank" rel="noopener">Wetterzentrale</a>,
-                    apri il suo meteogramma e copia il link dalla barra degli indirizzi
-                    (contiene <code>geoid=…</code>). Puoi incollare il link intero o solo il numero.
-                </div>
-                <div class="form-row">
-                    <label for="locName">Nome</label>
-                    <input id="locName" placeholder="Es. Firenze" maxlength="60" autocomplete="off">
-                </div>
-                <div class="form-row">
-                    <label for="locGeoid">Link Wetterzentrale o geoid</label>
-                    <input id="locGeoid" placeholder="https://www.wetterzentrale.de/...geoid=12345..." autocomplete="off">
-                </div>
-                <div class="form-error" id="formError"></div>
-                <div class="form-actions">
-                    <button type="submit" class="primary">Aggiungi</button>
-                </div>
-            </form>
+            <details class="adv">
+                <summary>Avanzate: collega le immagini Wetterzentrale</summary>
+                <form id="wzForm" novalidate>
+                    <div class="hint">
+                        I grafici interattivi funzionano per qualsiasi località. Se vuoi vedere anche le immagini
+                        originali di <a href="https://www.wetterzentrale.de/en/show_diagrams.php?model=ecm&var=201&lid=ENS&bw=1" target="_blank" rel="noopener">Wetterzentrale</a>,
+                        apri il meteogramma della località sul loro sito e incolla qui il link
+                        (contiene <code>geoid=…</code>). Verrà collegato a <b id="wzTarget"></b>.
+                    </div>
+                    <div class="form-row">
+                        <label for="wzInput">Link Wetterzentrale o geoid</label>
+                        <input id="wzInput" placeholder="https://www.wetterzentrale.de/...geoid=12345..." autocomplete="off">
+                    </div>
+                    <div class="form-error" id="wzMsg"></div>
+                    <div class="form-actions">
+                        <button type="submit" class="primary">Collega</button>
+                    </div>
+                </form>
+            </details>
+        </div>
+    </dialog>
+
+    <!-- Dialog guida -->
+    <dialog id="guideDialog">
+        <div class="dlg-head">
+            <h2>Come leggere i meteogrammi</h2>
+            <button class="close" aria-label="Chiudi">✕</button>
+        </div>
+        <div class="dlg-body guide">
+            <h4>Cos'è un ensemble</h4>
+            <p>
+                Un modello <em>ensemble</em> viene eseguito decine di volte partendo da condizioni iniziali
+                leggermente diverse. Ogni esecuzione (<em>membro</em>) è uno scenario possibile.
+            </p>
+            <ul>
+                <li><b>Linee vicine</b> → scenari concordi, previsione più affidabile.</li>
+                <li><b>Linee sparpagliate</b> → molta incertezza, la previsione può cambiare.</li>
+                <li>La <b>linea spessa</b> è la mediana; la <b>fascia colorata</b> contiene l'80% degli scenari (dal 10° al 90° percentile).</li>
+                <li>Per pioggia e neve le <b>barre</b> sono la quantità media ogni 6 ore e la <b>linea verde</b> è la probabilità (% di scenari) che si superi una soglia minima.</li>
+            </ul>
+            <h4>I modelli</h4>
+            <div id="guideModels"></div>
+            <h4>Fonti dei dati</h4>
+            <p>
+                Grafici interattivi e ricerca località: <a href="https://open-meteo.com/" target="_blank" rel="noopener" style="color:var(--accent)">Open-Meteo</a> (dati CC BY 4.0).
+                Immagini: <a href="https://www.wetterzentrale.de/" target="_blank" rel="noopener" style="color:var(--accent)">Wetterzentrale.de</a>.
+            </p>
         </div>
     </dialog>
 
     <script>
-        // ---------------- Configurazione ----------------
+        // ================= Configurazione =================
         const DEFAULT_LOCATIONS = [
-            { name: 'Vinci (FI)', geoid: '70549' }
+            { id: 'vinci', name: 'Vinci', sub: 'Toscana, Italia', lat: 43.7867, lon: 10.9262, geoid: '70549' }
         ];
 
+        // Modelli: identificativi Open-Meteo (om) e Wetterzentrale (wz)
         const MODELS = [
-            { name: 'ECMWF', desc: 'Europeo',                 code: 'ecm',  var: '201' },
-            { name: 'GFS',   desc: 'Americano',               code: 'gfs',  var: '201' },
-            { name: 'GEM',   desc: 'Canadese',                code: 'gem',  var: '201' },
-            { name: 'ICON',  desc: 'Tedesco – solo precip.',  code: 'ico',  var: '5'   },
-            { name: 'AIFS',  desc: 'Intelligenza artificiale', code: 'aifs', var: '201' }
+            {
+                key: 'ecm', name: 'ECMWF', desc: 'Europeo',
+                om: 'ecmwf_ifs025_ensemble', days: 15,
+                wz: { code: 'ecm', var: '201' },
+                facts: '51 scenari · 25 km · 15 giorni',
+                info: 'Modello del Centro Europeo per le Previsioni Meteorologiche a Medio Termine (ECMWF). ' +
+                      'È il riferimento principale per il medio termine (3–10 giorni) e, nelle verifiche statistiche, ' +
+                      'è in media tra i modelli globali più precisi. Aggiornato ogni 6 ore.'
+            },
+            {
+                key: 'gfs', name: 'GFS', desc: 'Americano',
+                om: 'ncep_gefs_seamless', days: 16,
+                wz: { code: 'gfs', var: '201' },
+                facts: '31 scenari · 25–50 km · 16 giorni',
+                info: 'Ensemble del servizio meteorologico statunitense (NOAA). Risoluzione 0,25° (~25 km) per i primi ' +
+                      '10 giorni, poi 0,5° (~50 km). Aggiornato ogni 6 ore: utile per confronto con ECMWF e per vedere ' +
+                      'come cambia la tendenza da una corsa all\'altra.'
+            },
+            {
+                key: 'gem', name: 'GEM', desc: 'Canadese',
+                om: 'gem_global_ensemble', days: 16,
+                wz: { code: 'gem', var: '201' },
+                unavailable: ['gust'],
+                facts: '21 scenari · 25 km · 16 giorni',
+                info: 'Ensemble del servizio meteorologico canadese (ECCC). Meno scenari degli altri ma utile come ' +
+                      'terza opinione: se concorda con ECMWF e GFS la tendenza è più solida. Aggiornato ogni 12 ore. ' +
+                      'Non fornisce le raffiche di vento.'
+            },
+            {
+                key: 'ico', name: 'ICON', desc: 'Tedesco',
+                om: 'icon_seamless_eps', days: 8,
+                wz: { code: 'ico', var: '5' },
+                unavailable: ['t850'],
+                facts: '40 scenari · 13–26 km · 7,5 giorni',
+                info: 'Ensemble del servizio meteorologico tedesco (DWD). Per l\'Italia usa ICON-EU-EPS (13 km, più ' +
+                      'dettagliato) nei primi 5 giorni e poi il globale (26 km) fino a 7,5 giorni: è quindi un modello ' +
+                      'da breve termine. Non fornisce la temperatura a 850 hPa.'
+            },
+            {
+                key: 'aifs', name: 'AIFS', desc: 'Intelligenza artificiale',
+                om: 'ecmwf_aifs025_ensemble', days: 15,
+                wz: { code: 'aifs', var: '201' },
+                unavailable: ['gust'],
+                facts: '51 scenari · 25 km · 15 giorni',
+                info: 'Modello di intelligenza artificiale dell\'ECMWF, addestrato su decenni di dati storici invece di ' +
+                      'risolvere le equazioni fisiche. Molto veloce e competitivo con i modelli tradizionali, ma con ' +
+                      'dati ogni 6 ore e meno dettagli (niente raffiche).'
+            }
         ];
 
-        const STORE_KEY = 'meteoEnsemble.v1';
+        // Variabili per i grafici interattivi
+        const VARIABLES = [
+            { key: 't850', label: 'Temperatura 850 hPa + pioggia', om: ['temperature_850hPa', 'precipitation'], kind: 'combo', unit: '°C',
+              note: 'La temperatura a circa 1500 m di quota: indica la massa d\'aria, senza gli effetti locali del suolo.' },
+            { key: 't2m',  label: 'Temperatura a 2 m',             om: ['temperature_2m'],   kind: 'line',  unit: '°C' },
+            { key: 'prec', label: 'Precipitazioni',                om: ['precipitation'],    kind: 'accum', unit: 'mm', threshold: 1 },
+            { key: 'snow', label: 'Neve',                          om: ['snowfall'],         kind: 'accum', unit: 'cm', threshold: 1 },
+            { key: 'wind', label: 'Vento medio (10 m)',            om: ['wind_speed_10m'],   kind: 'line',  unit: 'km/h', min: 0 },
+            { key: 'gust', label: 'Raffiche di vento',             om: ['wind_gusts_10m'],   kind: 'line',  unit: 'km/h', min: 0 },
+            { key: 'pres', label: 'Pressione al livello del mare', om: ['pressure_msl'],     kind: 'line',  unit: 'hPa' },
+            { key: 'cloud', label: 'Nuvolosità',                   om: ['cloud_cover'],      kind: 'line',  unit: '%', min: 0, max: 100 }
+        ];
 
-        // ---------------- Stato (salvato nel browser) ----------------
+        const STORE_KEY = 'meteoEnsemble.v2';
+        const OLD_STORE_KEY = 'meteoEnsemble.v1';
+
+        const COLORS = {
+            member: 'rgba(140, 160, 200, 0.22)',
+            band: 'rgba(59, 139, 255, 0.22)',
+            median: '#5aa2ff',
+            precip: 'rgba(80, 200, 255, 0.75)',
+            prob: '#3ecf7a',
+            grid: 'rgba(255, 255, 255, 0.07)',
+            text: '#9aa1b0'
+        };
+
+        // ================= Stato =================
         function loadState() {
-            let saved = {};
-            try { saved = JSON.parse(localStorage.getItem(STORE_KEY)) || {}; } catch (e) {}
-            const locations = Array.isArray(saved.locations) && saved.locations.length
-                ? saved.locations.filter(l => l && /^\d+$/.test(l.geoid) && typeof l.name === 'string')
-                : DEFAULT_LOCATIONS.slice();
+            let saved = null;
+            try { saved = JSON.parse(localStorage.getItem(STORE_KEY)); } catch (e) {}
+
+            // Migrazione dalla versione precedente (solo geoid)
+            if (!saved) {
+                let old = null;
+                try { old = JSON.parse(localStorage.getItem(OLD_STORE_KEY)); } catch (e) {}
+                if (old && Array.isArray(old.locations)) {
+                    const locs = DEFAULT_LOCATIONS.slice();
+                    old.locations.forEach(l => {
+                        if (!l || !/^\d+$/.test(l.geoid) || locs.some(x => x.geoid === l.geoid)) return;
+                        locs.push({ id: 'wz' + l.geoid, name: String(l.name).slice(0, 60), sub: 'Solo Wetterzentrale', geoid: l.geoid });
+                    });
+                    const cur = locs.find(x => x.geoid === old.current);
+                    saved = { locations: locs, current: cur && cur.id, hidden: old.hidden, cols: old.cols };
+                }
+            }
+            saved = saved || {};
+
+            const valid = l => l && typeof l.id === 'string' && typeof l.name === 'string' &&
+                ((typeof l.lat === 'number' && typeof l.lon === 'number') || /^\d+$/.test(l.geoid || ''));
+            let locations = Array.isArray(saved.locations) ? saved.locations.filter(valid) : [];
+            if (!locations.length) locations = DEFAULT_LOCATIONS.slice();
+
             return {
-                locations: locations.length ? locations : DEFAULT_LOCATIONS.slice(),
+                locations,
                 current: saved.current,
                 hidden: Array.isArray(saved.hidden) ? saved.hidden : [],
-                cols: saved.cols === 2 ? 2 : 1
+                cols: saved.cols === 2 ? 2 : 1,
+                source: saved.source === 'wz' ? 'wz' : 'om',
+                variable: VARIABLES.some(v => v.key === saved.variable) ? saved.variable : 't850'
             };
         }
 
@@ -424,25 +567,42 @@
 
         const state = loadState();
 
-        // Permette link diretti tipo index.html?geoid=12345&name=Firenze
+        // Link diretti: ?lat=..&lon=..&name=..  oppure  ?geoid=..&name=..
         (function applyUrlParams() {
             const p = new URLSearchParams(location.search);
+            const name = (p.get('name') || '').slice(0, 60);
+            const lat = parseFloat(p.get('lat')), lon = parseFloat(p.get('lon'));
             const gid = p.get('geoid');
-            if (gid && /^\d+$/.test(gid)) {
-                if (!state.locations.some(l => l.geoid === gid)) {
-                    state.locations.push({ name: (p.get('name') || 'Località ' + gid).slice(0, 60), geoid: gid });
+            if (isFinite(lat) && isFinite(lon) && Math.abs(lat) <= 90 && Math.abs(lon) <= 180) {
+                const id = coordId(lat, lon);
+                if (!state.locations.some(l => l.id === id)) {
+                    state.locations.push({ id, name: name || `${lat.toFixed(2)}, ${lon.toFixed(2)}`, sub: '', lat, lon });
                 }
-                state.current = gid;
+                state.current = id;
+            } else if (gid && /^\d+$/.test(gid)) {
+                let loc = state.locations.find(l => l.geoid === gid);
+                if (!loc) {
+                    loc = { id: 'wz' + gid, name: name || 'Località ' + gid, sub: 'Solo Wetterzentrale', geoid: gid };
+                    state.locations.push(loc);
+                }
+                state.current = loc.id;
             }
         })();
 
-        if (!state.locations.some(l => l.geoid === state.current)) {
-            state.current = state.locations[0].geoid;
+        if (!state.locations.some(l => l.id === state.current)) state.current = state.locations[0].id;
+
+        const currentLocation = () => state.locations.find(l => l.id === state.current);
+        const hasCoords = l => typeof l.lat === 'number' && typeof l.lon === 'number';
+        const currentVariable = () => VARIABLES.find(v => v.key === state.variable);
+
+        // Fonte effettiva in base a cosa offre la località
+        function effectiveSource(loc) {
+            if (state.source === 'wz' && loc.geoid) return 'wz';
+            if (hasCoords(loc)) return 'om';
+            return 'wz';
         }
 
-        const currentLocation = () => state.locations.find(l => l.geoid === state.current);
-
-        // ---------------- Utilità ----------------
+        // ================= Utilità =================
         const $ = id => document.getElementById(id);
 
         function el(tag, props = {}, children = []) {
@@ -452,8 +612,8 @@
             return node;
         }
 
-        function todayDate() {
-            return new Date().toISOString().split('T')[0];
+        function coordId(lat, lon) {
+            return lat.toFixed(3) + ',' + lon.toFixed(3);
         }
 
         function parseGeoid(input) {
@@ -463,91 +623,404 @@
             return m ? m[1] : null;
         }
 
-        // ---------------- Rendering ----------------
+        // Le ore di Open-Meteo (timezone=auto) sono ore locali senza fuso: le trattiamo come UTC
+        // e le formattiamo in UTC, così restano invariate.
+        const parseTime = t => Date.parse(t + ':00Z');
+        const fmtDay = new Intl.DateTimeFormat('it-IT', { weekday: 'short', day: 'numeric', timeZone: 'UTC' });
+        const fmtFull = new Intl.DateTimeFormat('it-IT', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', timeZone: 'UTC' });
+
+        function quantile(sorted, q) {
+            const pos = (sorted.length - 1) * q;
+            const lo = Math.floor(pos), hi = Math.ceil(pos);
+            return sorted[lo] + (sorted[hi] - sorted[lo]) * (pos - lo);
+        }
+
+        const round1 = v => v == null ? null : Math.round(v * 10) / 10;
+
+        // ================= Dati Open-Meteo =================
+        const cache = new Map();
+
+        async function fetchEnsemble(model, loc, vars) {
+            const url = 'https://ensemble-api.open-meteo.com/v1/ensemble?' + new URLSearchParams({
+                latitude: loc.lat,
+                longitude: loc.lon,
+                hourly: vars.join(','),
+                models: model.om,
+                forecast_days: model.days,
+                timezone: 'auto',
+                wind_speed_unit: 'kmh'
+            });
+            if (cache.has(url)) return cache.get(url);
+            const promise = fetch(url).then(async r => {
+                const data = await r.json().catch(() => ({}));
+                if (!r.ok || data.error) throw new Error(data.reason || 'HTTP ' + r.status);
+                return data;
+            });
+            cache.set(url, promise);
+            promise.catch(() => cache.delete(url));
+            return promise;
+        }
+
+        // Estrae dalla risposta tutte le serie (controllo + membri) di una variabile
+        function extractMembers(hourly, varName, modelId) {
+            const re = new RegExp(`^${varName}(_member\\d+)?(_${modelId})?$`);
+            return Object.keys(hourly)
+                .filter(k => re.test(k))
+                .map(k => hourly[k])
+                .filter(arr => Array.isArray(arr) && arr.some(v => v != null));
+        }
+
+        function stats(members, n) {
+            const p10 = [], p50 = [], p90 = [];
+            for (let i = 0; i < n; i++) {
+                const vals = members.map(m => m[i]).filter(v => v != null).sort((a, b) => a - b);
+                if (vals.length < 3) { p10.push(null); p50.push(null); p90.push(null); continue; }
+                p10.push(quantile(vals, 0.1));
+                p50.push(quantile(vals, 0.5));
+                p90.push(quantile(vals, 0.9));
+            }
+            return { p10, p50, p90 };
+        }
+
+        // Accumula su blocchi di 6 ore: media dei membri e % di membri sopra soglia.
+        // Il valore viene ripetuto su tutte le ore del blocco (disegnato a gradini).
+        function accumulate6h(members, times, threshold) {
+            const n = times.length;
+            const mean = new Array(n).fill(null), prob = new Array(n).fill(null);
+            let start = 0;
+            while (start < n) {
+                const block = Math.floor(new Date(times[start] - 3600e3).getUTCHours() / 6);
+                let end = start;
+                while (end + 1 < n && Math.floor(new Date(times[end + 1] - 3600e3).getUTCHours() / 6) === block &&
+                       times[end + 1] - times[start] < 6 * 3600e3) end++;
+                const sums = [];
+                members.forEach(m => {
+                    let s = 0, ok = false;
+                    for (let i = start; i <= end; i++) if (m[i] != null) { s += m[i]; ok = true; }
+                    if (ok) sums.push(s);
+                });
+                if (sums.length >= 3) {
+                    const avg = sums.reduce((a, b) => a + b, 0) / sums.length;
+                    const p = 100 * sums.filter(s => s >= threshold).length / sums.length;
+                    for (let i = start; i <= end; i++) { mean[i] = avg; prob[i] = p; }
+                }
+                start = end + 1;
+            }
+            return { mean, prob };
+        }
+
+        // ================= Grafici =================
+        let charts = [];
+
+        function destroyCharts() {
+            charts.forEach(c => c.destroy());
+            charts = [];
+        }
+
+        function lastValidIndex(arr) {
+            for (let i = arr.length - 1; i >= 0; i--) if (arr[i] != null) return i;
+            return -1;
+        }
+
+        function buildChart(canvas, data, variable, modelId) {
+            const times = data.hourly.time.map(parseTime);
+            const xy = arr => arr.map((y, i) => ({ x: times[i], y: round1(y) }));
+            const datasets = [];
+            const scales = {};
+            const legend = [];
+            let lastIdx = -1;
+
+            const lineVar = variable.kind === 'line' || variable.kind === 'combo' ? variable.om[0] : null;
+            const accVar = variable.kind === 'accum' ? variable.om[0] : (variable.kind === 'combo' ? variable.om[1] : null);
+
+            if (lineVar) {
+                const members = extractMembers(data.hourly, lineVar, modelId);
+                if (!members.length) return null;
+                const s = stats(members, times.length);
+                lastIdx = Math.max(lastIdx, lastValidIndex(s.p50));
+                members.forEach(m => datasets.push({
+                    data: xy(m), borderColor: COLORS.member, borderWidth: 1, pointRadius: 0, tooltip: false, order: 5
+                }));
+                datasets.push({ label: '10° perc.', data: xy(s.p10), borderWidth: 0, pointRadius: 0, order: 4 });
+                datasets.push({ label: '90° perc.', data: xy(s.p90), borderWidth: 0, pointRadius: 0,
+                                backgroundColor: COLORS.band, fill: '-1', order: 4 });
+                datasets.push({ label: 'Mediana', data: xy(s.p50), borderColor: COLORS.median, borderWidth: 2.5, pointRadius: 0, order: 1 });
+                scales.y = {
+                    position: 'left',
+                    title: { display: true, text: variable.unit, color: COLORS.text },
+                    grid: { color: COLORS.grid },
+                    suggestedMin: variable.min, max: variable.max
+                };
+                legend.push(['Mediana', COLORS.median], ['10–90% degli scenari', COLORS.band], ['Singoli scenari', 'rgba(140,160,200,0.6)']);
+            }
+
+            if (accVar) {
+                const members = extractMembers(data.hourly, accVar, modelId);
+                if (!members.length && !lineVar) return null;
+                if (members.length) {
+                    const unit = variable.kind === 'combo' ? 'mm' : variable.unit;
+                    const threshold = variable.threshold || 1;
+                    const acc = accumulate6h(members, times, threshold);
+                    lastIdx = Math.max(lastIdx, lastValidIndex(acc.mean));
+                    const axis = lineVar ? 'y2' : 'y';
+                    datasets.push({
+                        label: `Media 6 h (${unit})`, data: xy(acc.mean), yAxisID: axis,
+                        stepped: 'middle', borderColor: COLORS.precip, borderWidth: 1, pointRadius: 0,
+                        backgroundColor: 'rgba(80, 200, 255, 0.35)', fill: 'origin', order: 3
+                    });
+                    scales[axis] = {
+                        position: lineVar ? 'right' : 'left', beginAtZero: true, suggestedMax: unit === 'cm' ? 5 : 10,
+                        title: { display: true, text: `${unit} / 6 h`, color: COLORS.text },
+                        grid: { color: lineVar ? 'transparent' : COLORS.grid }
+                    };
+                    legend.push([`Media ogni 6 ore (${unit})`, COLORS.precip]);
+                    if (!lineVar) {
+                        datasets.push({
+                            label: `Prob. ≥ ${threshold} ${unit} (%)`, data: xy(acc.prob), yAxisID: 'yp',
+                            stepped: 'middle', borderColor: COLORS.prob, borderWidth: 1.5, pointRadius: 0, order: 2
+                        });
+                        scales.yp = {
+                            position: 'right', min: 0, max: 100,
+                            title: { display: true, text: 'probabilità %', color: COLORS.text },
+                            grid: { color: 'transparent' }
+                        };
+                        legend.push([`Probabilità ≥ ${threshold} ${unit} in 6 ore`, COLORS.prob]);
+                    }
+                }
+            }
+
+            if (lastIdx < 0) return null;
+            const xMin = times[0], xMax = times[lastIdx];
+
+            scales.x = {
+                type: 'linear', min: xMin, max: xMax,
+                grid: { color: COLORS.grid },
+                afterBuildTicks: axis => {
+                    const ticks = [];
+                    // Un'etichetta ogni ~60 px circa
+                    const days = (xMax - xMin) / 86400e3;
+                    const step = Math.max(1, Math.ceil(days / Math.max(1, (axis.width || 600) / 60)));
+                    let d = new Date(xMin); d.setUTCHours(0, 0, 0, 0);
+                    let i = 0;
+                    for (let t = d.getTime(); t <= xMax; t += 86400e3, i++) {
+                        if (t >= xMin && i % step === 0) ticks.push({ value: t });
+                    }
+                    axis.ticks = ticks;
+                },
+                ticks: { maxRotation: 0, autoSkip: false, callback: v => fmtDay.format(v) }
+            };
+
+            const chart = new Chart(canvas, {
+                type: 'line',
+                data: { datasets },
+                options: {
+                    animation: false,
+                    maintainAspectRatio: false,
+                    parsing: false,
+                    normalized: true,
+                    spanGaps: true,
+                    interaction: { mode: 'index', intersect: false },
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            filter: item => item.dataset.tooltip !== false && item.parsed.y != null,
+                            callbacks: {
+                                title: items => items.length ? fmtFull.format(items[0].parsed.x) : '',
+                                label: item => ` ${item.dataset.label}: ${item.parsed.y.toLocaleString('it-IT', { maximumFractionDigits: 1 })}`
+                            }
+                        }
+                    },
+                    scales
+                }
+            });
+            return { chart, legend };
+        }
+
+        // ================= Rendering =================
         function renderLocationSelect() {
             const sel = $('locSelect');
             sel.innerHTML = '';
             state.locations.forEach(l => {
-                sel.append(el('option', { value: l.geoid, textContent: l.name, selected: l.geoid === state.current }));
+                sel.append(el('option', { value: l.id, textContent: l.name, selected: l.id === state.current }));
             });
             const loc = currentLocation();
             $('locTitle').textContent = loc.name;
             document.title = 'Meteogrammi Ensemble – ' + loc.name;
         }
 
-        function renderModelChips() {
+        function renderToolbar() {
+            const loc = currentLocation();
+            const src = effectiveSource(loc);
+            document.querySelectorAll('#sourceSeg button').forEach(b => {
+                b.classList.toggle('on', b.dataset.source === src);
+                b.disabled = b.dataset.source === 'wz' ? !loc.geoid : !hasCoords(loc);
+            });
+            $('varGroup').style.display = src === 'om' ? '' : 'none';
+
+            const sel = $('varSelect');
+            if (!sel.options.length) {
+                VARIABLES.forEach(v => sel.append(el('option', { value: v.key, textContent: v.label })));
+            }
+            sel.value = state.variable;
+
             const wrap = $('modelChips');
             wrap.innerHTML = '';
             MODELS.forEach(m => {
-                const on = !state.hidden.includes(m.code);
-                const chip = el('button', {
-                    className: 'chip' + (on ? ' on' : ''),
-                    textContent: m.name,
-                    title: m.desc
-                });
+                const on = !state.hidden.includes(m.key);
+                const chip = el('button', { className: 'chip' + (on ? ' on' : ''), textContent: m.name, title: m.desc });
                 chip.setAttribute('aria-pressed', on);
                 chip.addEventListener('click', () => {
-                    state.hidden = on ? state.hidden.concat(m.code) : state.hidden.filter(c => c !== m.code);
+                    state.hidden = on ? state.hidden.concat(m.key) : state.hidden.filter(c => c !== m.key);
                     saveState();
-                    renderModelChips();
-                    updateCharts();
+                    renderAll();
                 });
-                wrap.append(chip, ' ');
+                wrap.append(chip);
             });
-        }
 
-        function renderLayout() {
             $('grid').classList.toggle('cols-2', state.cols === 2);
-            document.querySelectorAll('.seg button').forEach(b => {
+            document.querySelectorAll('.layout-seg button').forEach(b => {
                 b.classList.toggle('on', Number(b.dataset.cols) === state.cols);
             });
         }
 
-        function updateCharts() {
+        function cardShell(m, extraActions = []) {
+            const infoBox = el('div', { className: 'model-info', textContent: m.info });
+            const infoBtn = el('button', { className: 'info-btn', textContent: 'i', title: 'Informazioni sul modello' });
+            infoBtn.setAttribute('aria-label', 'Informazioni su ' + m.name);
+            infoBtn.addEventListener('click', () => {
+                infoBox.classList.toggle('open');
+                infoBtn.classList.toggle('on');
+            });
+            const title = el('div', {}, [
+                el('h3', { textContent: m.name }, [el('span', { className: 'tag', textContent: m.desc })]),
+                el('div', { className: 'facts', textContent: m.facts })
+            ]);
+            const head = el('div', { className: 'chart-head' }, [title, el('div', { className: 'head-actions' }, [...extraActions, infoBtn])]);
+            const card = el('div', { className: 'chart-card' }, [head, infoBox]);
+            return card;
+        }
+
+        function statusBox(text) {
+            const label = el('span', { textContent: text });
+            return { box: el('div', { className: 'status' }, [el('div', { className: 'spinner' }), label]), label };
+        }
+
+        let renderToken = 0;
+
+        function renderCharts() {
+            destroyCharts();
+            const token = ++renderToken;
             const grid = $('grid');
             grid.innerHTML = '';
-            const loc = currentLocation();
-            const today = todayDate();
-            const ts = Date.now(); // anti-cache
+            $('notice').innerHTML = '';
 
-            const visible = MODELS.filter(m => !state.hidden.includes(m.code));
+            const loc = currentLocation();
+            const src = effectiveSource(loc);
+            const visible = MODELS.filter(m => !state.hidden.includes(m.key));
+
+            if (src === 'wz' && !hasCoords(loc)) {
+                $('notice').append(el('div', { className: 'notice', textContent:
+                    'Questa località è collegata solo a Wetterzentrale. Per i grafici interattivi cercala per nome in 📍 Località.' }));
+            }
+            if (src === 'om' && currentVariable().note) {
+                $('notice').append(el('div', { className: 'notice', textContent: currentVariable().note }));
+            }
+
             if (!visible.length) {
                 grid.append(el('div', { className: 'empty', textContent: 'Nessun modello selezionato.' }));
                 return;
             }
 
-            visible.forEach(m => {
-                const gid = encodeURIComponent(loc.geoid);
-                const imgUrl = `https://www.wetterzentrale.de/en/ens_image.php?geoid=${gid}&var=${m.var}&model=${m.code}&member=ENS&bw=1&date=${today}&_t=${ts}`;
-                const pageUrl = `https://www.wetterzentrale.de/en/show_diagrams.php?model=${m.code}&var=${m.var}&geoid=${gid}&lid=ENS&bw=1`;
+            if (src === 'wz') renderWetterzentrale(loc, visible);
+            else renderOpenMeteo(loc, visible, token);
 
-                const statusText = el('span', { textContent: 'Caricamento…' });
-                const status = el('div', { className: 'status' }, [el('div', { className: 'spinner' }), statusText]);
+            const now = new Date();
+            $('updated').textContent =
+                `Fonte: ${src === 'wz' ? 'Wetterzentrale.de' : 'Open-Meteo'} · aggiornato alle ` +
+                now.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' }) +
+                (hasCoords(loc) ? ` · ${loc.lat.toFixed(2)}°N ${loc.lon.toFixed(2)}°E` : '');
+        }
+
+        function renderOpenMeteo(loc, visible, token) {
+            const variable = currentVariable();
+            visible.forEach(m => {
+                const card = cardShell(m);
+                const { box, label } = statusBox('Caricamento…');
+                const canvas = el('canvas');
+                const body = el('div', { className: 'chart-body canvas' }, [canvas, box]);
+                const legendBox = el('div', { className: 'legend' });
+                card.append(body, legendBox);
+                $('grid').append(card);
+
+                if (typeof Chart === 'undefined') {
+                    body.classList.add('error');
+                    label.textContent = 'Impossibile caricare la libreria dei grafici. Controlla la connessione.';
+                    return;
+                }
+                if ((m.unavailable || []).includes(variable.key)) {
+                    body.classList.add('na');
+                    label.textContent = `«${variable.label}» non è disponibile per ${m.name}.`;
+                    return;
+                }
+
+                fetchEnsemble(m, loc, variable.om).then(data => {
+                    if (token !== renderToken) return;
+                    const res = buildChart(canvas, data, variable, m.om);
+                    if (!res) {
+                        body.classList.add('na');
+                        label.textContent = `Nessun dato di «${variable.label}» per ${m.name}.`;
+                        return;
+                    }
+                    charts.push(res.chart);
+                    body.classList.add('loaded');
+                    res.legend.forEach(([text, color]) => {
+                        legendBox.append(el('span', {}, [el('i', { style: `background:${color}` }), text]));
+                    });
+                }).catch(err => {
+                    if (token !== renderToken) return;
+                    body.classList.add('error');
+                    label.textContent = 'Errore nel caricamento dei dati: ' + err.message;
+                });
+            });
+        }
+
+        function renderWetterzentrale(loc, visible) {
+            const today = new Date().toISOString().split('T')[0];
+            const ts = Date.now(); // anti-cache
+            const gid = encodeURIComponent(loc.geoid);
+
+            visible.forEach(m => {
+                const imgUrl = `https://www.wetterzentrale.de/en/ens_image.php?geoid=${gid}&var=${m.wz.var}&model=${m.wz.code}&member=ENS&bw=1&date=${today}&_t=${ts}`;
+                const pageUrl = `https://www.wetterzentrale.de/en/show_diagrams.php?model=${m.wz.code}&var=${m.wz.var}&geoid=${gid}&lid=ENS&bw=1`;
+
+                const link = el('a', { href: pageUrl, target: '_blank', rel: 'noopener', textContent: 'Originale ↗' });
+                const card = cardShell(m, [link]);
+                const { box, label } = statusBox('Caricamento…');
                 const img = el('img', { alt: `Meteogramma ${m.name} – ${loc.name}`, loading: 'lazy' });
-                const body = el('div', { className: 'chart-body' }, [img, status]);
+                const body = el('div', { className: 'chart-body image' }, [img, box]);
 
                 img.addEventListener('load', () => body.classList.add('loaded'));
                 img.addEventListener('error', () => {
                     body.classList.add('error');
-                    statusText.textContent = 'Immagine non disponibile – apri il grafico originale.';
+                    label.textContent = 'Immagine non disponibile – apri il grafico originale.';
                 });
                 body.addEventListener('click', () => {
                     if (body.classList.contains('loaded')) openLightbox(img.src, img.alt);
                 });
                 img.src = imgUrl;
 
-                const title = el('h3', { textContent: m.name }, [el('span', { className: 'tag', textContent: m.desc })]);
-                const link = el('a', { href: pageUrl, target: '_blank', rel: 'noopener', textContent: 'Apri originale ↗' });
-                const head = el('div', { className: 'chart-head' }, [title, link]);
-
-                grid.append(el('div', { className: 'chart-card' }, [head, body]));
+                card.append(body);
+                $('grid').append(card);
             });
-
-            const now = new Date();
-            $('updated').textContent = `Fonte: Wetterzentrale.de · aggiornato alle ${now.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })}`;
         }
 
-        // ---------------- Lightbox ----------------
+        function renderAll() {
+            renderLocationSelect();
+            renderToolbar();
+            renderCharts();
+        }
+
+        // ================= Lightbox =================
         function openLightbox(src, alt) {
             const lb = $('lightbox');
             const img = lb.querySelector('img');
@@ -560,79 +1033,192 @@
             if (e.key === 'Escape') $('lightbox').classList.remove('open');
         });
 
-        // ---------------- Gestione località ----------------
+        // ================= Ricerca località =================
+        let searchTimer = null, searchSeq = 0;
+
+        function describePlace(r) {
+            return [r.admin3 && r.admin3 !== r.name ? r.admin3 : null, r.admin1, r.country]
+                .filter((v, i, a) => v && a.indexOf(v) === i).join(', ');
+        }
+
+        function showResultMessage(text) {
+            $('results').innerHTML = '';
+            $('results').append(el('li', { className: 'msg', textContent: text }));
+        }
+
+        async function searchPlaces(query) {
+            const seq = ++searchSeq;
+            showResultMessage('Ricerca in corso…');
+            try {
+                const url = 'https://geocoding-api.open-meteo.com/v1/search?' + new URLSearchParams({
+                    name: query, count: 10, language: 'it', format: 'json'
+                });
+                const r = await fetch(url);
+                const data = await r.json();
+                if (seq !== searchSeq) return;
+                if (!r.ok || data.error) throw new Error(data.reason || 'HTTP ' + r.status);
+                const list = data.results || [];
+                if (!list.length) { showResultMessage('Nessuna località trovata.'); return; }
+
+                const ul = $('results');
+                ul.innerHTML = '';
+                list.forEach(res => {
+                    const sub = describePlace(res) + (res.elevation != null ? ` · ${Math.round(res.elevation)} m` : '');
+                    const li = el('li', { tabIndex: 0 }, [
+                        el('div', { className: 'place' }, [
+                            el('div', { className: 'n', textContent: res.name }),
+                            el('div', { className: 'd', textContent: sub })
+                        ]),
+                        el('button', { className: 'primary', textContent: 'Aggiungi', tabIndex: -1 })
+                    ]);
+                    const pick = () => addPlace(res);
+                    li.addEventListener('click', pick);
+                    li.addEventListener('keydown', e => { if (e.key === 'Enter') pick(); });
+                    ul.append(li);
+                });
+            } catch (err) {
+                if (seq === searchSeq) showResultMessage('Errore nella ricerca: ' + err.message);
+            }
+        }
+
+        function addPlace(res) {
+            const lat = Number(res.latitude), lon = Number(res.longitude);
+            const id = coordId(lat, lon);
+            if (!state.locations.some(l => l.id === id)) {
+                state.locations.push({
+                    id, lat, lon,
+                    name: String(res.name).slice(0, 60),
+                    sub: [res.admin1, res.country].filter(Boolean).join(', ').slice(0, 80)
+                });
+            }
+            state.current = id;
+            if (state.source === 'wz') state.source = 'om';
+            saveState();
+            $('searchInput').value = '';
+            $('results').innerHTML = '';
+            $('locDialog').close();
+            renderAll();
+        }
+
+        $('searchInput').addEventListener('input', e => {
+            clearTimeout(searchTimer);
+            const q = e.target.value.trim();
+            if (q.length < 2) { searchSeq++; $('results').innerHTML = ''; return; }
+            searchTimer = setTimeout(() => searchPlaces(q), 350);
+        });
+
+        // ================= Gestione località =================
         function renderLocationList() {
             const list = $('locList');
             list.innerHTML = '';
             state.locations.forEach(l => {
                 const del = el('button', { className: 'danger', textContent: 'Rimuovi', disabled: state.locations.length === 1 });
-                del.addEventListener('click', () => {
-                    state.locations = state.locations.filter(x => x.geoid !== l.geoid);
-                    if (state.current === l.geoid) state.current = state.locations[0].geoid;
+                del.addEventListener('click', e => {
+                    e.stopPropagation();
+                    state.locations = state.locations.filter(x => x.id !== l.id);
+                    if (state.current === l.id) state.current = state.locations[0].id;
                     saveState();
                     renderLocationList();
-                    renderLocationSelect();
-                    updateCharts();
+                    renderAll();
                 });
-                list.append(el('li', {}, [
-                    el('span', { className: 'name', textContent: l.name }),
-                    el('span', { className: 'gid', textContent: '#' + l.geoid }),
+                const details = [l.sub, l.geoid ? 'Wetterzentrale ✓' : null].filter(Boolean).join(' · ');
+                const li = el('li', { className: l.id === state.current ? 'current' : '' }, [
+                    el('div', { className: 'place' }, [
+                        el('div', { className: 'n', textContent: l.name }),
+                        el('div', { className: 'd', textContent: details })
+                    ]),
                     del
-                ]));
+                ]);
+                li.style.cursor = 'pointer';
+                li.title = 'Mostra questa località';
+                li.addEventListener('click', () => {
+                    state.current = l.id;
+                    saveState();
+                    $('locDialog').close();
+                    renderAll();
+                });
+                list.append(li);
             });
+            $('wzTarget').textContent = currentLocation().name;
         }
 
         $('manageBtn').addEventListener('click', () => {
             renderLocationList();
-            $('formError').textContent = '';
+            $('wzMsg').textContent = '';
+            $('wzMsg').classList.remove('form-ok');
             $('locDialog').showModal();
+            $('searchInput').focus();
         });
-        $('closeDlg').addEventListener('click', () => $('locDialog').close());
 
-        $('addForm').addEventListener('submit', e => {
+        $('wzForm').addEventListener('submit', e => {
             e.preventDefault();
-            const name = $('locName').value.trim();
-            const geoid = parseGeoid($('locGeoid').value);
-            const err = $('formError');
-
-            if (!name) { err.textContent = 'Inserisci un nome.'; return; }
-            if (!geoid) { err.textContent = 'Link o geoid non valido: deve contenere "geoid=" seguito da un numero.'; return; }
-            const existing = state.locations.find(l => l.geoid === geoid);
-            if (existing) { err.textContent = `Questa località è già presente come "${existing.name}".`; return; }
-
-            state.locations.push({ name, geoid });
-            state.current = geoid;
+            const msg = $('wzMsg');
+            msg.classList.remove('form-ok');
+            const geoid = parseGeoid($('wzInput').value);
+            if (!geoid) { msg.textContent = 'Link o geoid non valido: deve contenere "geoid=" seguito da un numero.'; return; }
+            const other = state.locations.find(l => l.geoid === geoid && l.id !== state.current);
+            if (other) { msg.textContent = `Questo geoid è già collegato a "${other.name}".`; return; }
+            currentLocation().geoid = geoid;
             saveState();
-            $('addForm').reset();
-            err.textContent = '';
-            $('locDialog').close();
-            renderLocationSelect();
-            updateCharts();
+            $('wzInput').value = '';
+            msg.textContent = 'Collegato! Ora puoi scegliere la fonte "Wetterzentrale".';
+            msg.classList.add('form-ok');
+            renderLocationList();
+            renderToolbar();
         });
 
-        // ---------------- Eventi principali ----------------
+        // ================= Guida =================
+        (function renderGuide() {
+            const box = $('guideModels');
+            MODELS.forEach(m => box.append(el('div', { className: 'm' }, [
+                el('b', { textContent: `${m.name} (${m.desc})` }),
+                document.createTextNode(' — ' + m.facts),
+                el('span', { textContent: m.info })
+            ])));
+        })();
+        $('guideBtn').addEventListener('click', () => $('guideDialog').showModal());
+
+        document.querySelectorAll('dialog .close').forEach(b => b.addEventListener('click', () => b.closest('dialog').close()));
+        document.querySelectorAll('dialog').forEach(d => d.addEventListener('click', e => { if (e.target === d) d.close(); }));
+
+        // ================= Eventi principali =================
         $('locSelect').addEventListener('change', e => {
             state.current = e.target.value;
             saveState();
-            renderLocationSelect();
-            updateCharts();
+            renderAll();
         });
 
-        document.querySelectorAll('.seg button').forEach(b => {
-            b.addEventListener('click', () => {
-                state.cols = Number(b.dataset.cols);
-                saveState();
-                renderLayout();
-            });
+        $('varSelect').addEventListener('change', e => {
+            state.variable = e.target.value;
+            saveState();
+            renderCharts();
         });
 
-        $('refreshBtn').addEventListener('click', updateCharts);
+        document.querySelectorAll('#sourceSeg button').forEach(b => b.addEventListener('click', () => {
+            state.source = b.dataset.source;
+            saveState();
+            renderToolbar();
+            renderCharts();
+        }));
 
-        // ---------------- Avvio ----------------
-        renderLocationSelect();
-        renderModelChips();
-        renderLayout();
-        updateCharts();
+        document.querySelectorAll('.layout-seg button').forEach(b => b.addEventListener('click', () => {
+            state.cols = Number(b.dataset.cols);
+            saveState();
+            renderToolbar();
+            charts.forEach(c => c.resize());
+        }));
+
+        $('refreshBtn').addEventListener('click', () => {
+            cache.clear();
+            renderCharts();
+        });
+
+        // ================= Avvio =================
+        if (typeof Chart !== 'undefined') {
+            Chart.defaults.color = COLORS.text;
+            Chart.defaults.font.family = "'Segoe UI', system-ui, -apple-system, Arial, sans-serif";
+        }
+        renderAll();
     </script>
 </body>
 </html>
