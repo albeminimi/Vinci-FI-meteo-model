@@ -739,7 +739,7 @@
                 layers,
                 range: [0, 3, 5, 7, 10].includes(saved.range) ? saved.range : 0,
                 thresholds: saved.thresholds && typeof saved.thresholds === 'object' ? saved.thresholds : {},
-                compare: saved.compare !== false,
+                compare: saved.compare === true,
                 compareMode: COMPARE_MODES.some(m => m.key === saved.compareMode) ? saved.compareMode : 'mean'
             };
         }
