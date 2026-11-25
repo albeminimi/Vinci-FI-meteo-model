@@ -17,10 +17,12 @@
             --accent-2: #2f6fd1;
             --ok: #2fb36b;
             --err: #e5534b;
+            --th: #ffd23f;
             --radius: 10px;
         }
 
         * { box-sizing: border-box; }
+        [hidden] { display: none !important; }
 
         body {
             margin: 0;
@@ -28,6 +30,7 @@
             font-family: 'Segoe UI', system-ui, -apple-system, Arial, sans-serif;
             color: var(--text);
         }
+        body.noscroll { overflow: hidden; }
 
         /* ---------- Header ---------- */
         header {
@@ -39,7 +42,7 @@
             border-bottom: 1px solid var(--border);
         }
 
-        @media (max-width: 600px) { header { position: static; } }
+        @media (max-width: 760px) { header { position: static; } }
 
         .header-inner, .toolbar {
             max-width: 1400px;
@@ -82,6 +85,7 @@
         button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
         button.primary:hover { background: var(--accent-2); }
         button.danger:hover:not(:disabled) { background: var(--err); border-color: var(--err); color: #fff; }
+        button.small, select.small { padding: 6px 10px; font-size: 13px; }
 
         .group { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
         .group .label { font-size: 12px; color: var(--muted); }
@@ -103,6 +107,27 @@
 
         .spacer { flex: 1; }
         #varSelect { padding: 6px 10px; font-size: 13px; }
+
+        /* ---------- Barra di analisi ---------- */
+        .popwrap { position: relative; }
+        .popover {
+            position: absolute; top: calc(100% + 6px); left: 0; z-index: 150;
+            display: none;
+            min-width: 230px;
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 6px 10px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+        }
+        .popover.open { display: block; }
+        .popover label { display: flex; align-items: center; gap: 8px; font-size: 13px; padding: 5px 2px; cursor: pointer; }
+        .popover label input, .check input { width: 16px; height: 16px; padding: 0; margin: 0; accent-color: var(--accent); }
+        .popover label i { width: 18px; height: 3px; border-radius: 2px; flex-shrink: 0; }
+        .check { display: flex; align-items: center; gap: 6px; font-size: 13px; cursor: pointer; }
+        .check input { accent-color: var(--th); }
+        .th-input { width: 76px; padding: 6px 8px; font-size: 13px; }
+        .unit { font-size: 12px; color: var(--muted); }
 
         /* ---------- Griglia ---------- */
         main { max-width: 1400px; margin: 0 auto; padding: 20px 16px 120px; }
@@ -131,9 +156,12 @@
             overflow: hidden;
             box-shadow: 0 4px 18px rgba(0, 0, 0, 0.35);
         }
+        .chart-card.compare { grid-column: 1 / -1; }
+        .chart-card.full { position: fixed; inset: 0; z-index: 250; border-radius: 0; overflow: auto; }
 
         .chart-head {
             display: flex;
+            flex-wrap: wrap;
             align-items: flex-start;
             justify-content: space-between;
             gap: 8px;
@@ -143,9 +171,11 @@
         .chart-head h3 { margin: 0; font-size: 15px; font-weight: 600; }
         .chart-head h3 .tag { font-weight: 400; font-size: 12px; color: var(--muted); margin-left: 6px; }
         .chart-head .facts { font-size: 12px; color: var(--muted); margin-top: 3px; }
-        .head-actions { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+        .head-actions { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
         .head-actions a { font-size: 12px; color: var(--accent); text-decoration: none; white-space: nowrap; }
         .head-actions a:hover { text-decoration: underline; }
+        .head-actions .act { padding: 4px 9px; font-size: 12px; border-radius: 6px; }
+        .head-actions .seg button { padding: 4px 10px; font-size: 12px; }
         .info-btn {
             width: 28px; height: 28px; padding: 0;
             border-radius: 50%;
@@ -169,9 +199,6 @@
         .model-info.open { display: block; }
 
         .chart-body { position: relative; min-height: 220px; }
-        .chart-body.canvas { height: 340px; padding: 8px 8px 4px; }
-        @media (max-width: 600px) { .chart-body.canvas { height: 280px; } }
-
         .chart-body.image { background: #fff; cursor: zoom-in; }
         .chart-body.image img { width: 100%; height: auto; display: block; opacity: 0; transition: opacity 0.3s; }
         .chart-body.image.loaded img { opacity: 1; }
@@ -190,10 +217,10 @@
             padding: 0 20px;
         }
         .chart-body.image .status { color: #666; }
-        .chart-body.loaded .status { display: none; }
+        .loaded > .status { display: none; }
         .chart-body.error { cursor: default; }
-        .chart-body.error .status { color: var(--err); }
-        .chart-body.error .spinner, .chart-body.na .spinner { display: none; }
+        .error > .status { color: var(--err); }
+        .error .spinner, .na .spinner { display: none; }
 
         .spinner {
             width: 28px; height: 28px;
@@ -204,17 +231,98 @@
         }
         @keyframes spin { to { transform: rotate(360deg); } }
 
-        .legend {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 4px 14px;
-            font-size: 12px;
-            color: var(--muted);
-            padding: 4px 14px 10px;
-        }
-        .legend i { display: inline-block; width: 18px; height: 3px; vertical-align: middle; margin-right: 5px; border-radius: 2px; }
-
         .empty { text-align: center; color: var(--muted); padding: 60px 0; }
+
+        /* ---------- Pannello in stile Wetterzentrale ---------- */
+        .wz-panel { display: flex; background: #000; }
+        .wz-legend {
+            width: 150px;
+            flex-shrink: 0;
+            max-height: 470px;
+            overflow-y: auto;
+            padding: 10px 6px 10px 10px;
+            border-right: 1px solid #1c1c1c;
+            font: 10px/1.3 Arial, Helvetica, sans-serif;
+            color: #fff;
+        }
+        .wz-legend .ltoggle { display: none; }
+        .wz-legend .lbtns { display: flex; gap: 4px; margin-bottom: 6px; }
+        .wz-legend .lbtns button { padding: 2px 6px; font-size: 10px; border-radius: 4px; background: #111; border-color: #333; color: #ccc; }
+        .wz-legend .mem { display: grid; grid-template-columns: 1fr 1fr; gap: 0 6px; }
+        .wz-legend .it {
+            display: flex; align-items: center; gap: 4px;
+            padding: 1px 2px;
+            border-radius: 3px;
+            white-space: nowrap;
+            cursor: pointer;
+            user-select: none;
+        }
+        .wz-legend .it:hover { background: rgba(255, 255, 255, 0.14); }
+        .wz-legend .it i { width: 14px; height: 2px; flex-shrink: 0; }
+        .wz-legend .it.off { opacity: 0.3; text-decoration: line-through; }
+        .wz-legend .extra { margin-top: 8px; display: flex; flex-direction: column; gap: 2px; }
+        .wz-legend .extra .it i { height: 3px; }
+        .wz-legend .extra .it.static { cursor: default; }
+        .wz-legend .extra .it.static:hover { background: none; }
+
+        .wz-plot { position: relative; flex: 1; min-width: 0; height: 470px; }
+        .wz-plot canvas.ov { position: absolute; inset: 0; width: 100%; height: 100%; touch-action: pan-y; cursor: crosshair; }
+        .wz-plot .status { color: #aaa; }
+        .chart-card.full .wz-plot { height: calc(100vh - 110px); }
+        .chart-card.full .wz-legend { max-height: calc(100vh - 110px); }
+
+        .wz-tip {
+            position: absolute; z-index: 5;
+            display: none;
+            min-width: 180px; max-width: 270px;
+            padding: 7px 10px;
+            pointer-events: none;
+            background: rgba(10, 10, 12, 0.94);
+            border: 1px solid #555;
+            border-radius: 6px;
+            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.6);
+            font: 12px/1.45 'Segoe UI', system-ui, sans-serif;
+            color: #eee;
+        }
+        .wz-tip .t { font-weight: 600; color: #fff; margin-bottom: 3px; }
+        .wz-tip .r { display: flex; justify-content: space-between; gap: 14px; }
+        .wz-tip .r span { color: #aaa; }
+        .wz-tip .r b { font-weight: 600; color: #fff; }
+        .wz-tip .r i { display: inline-block; width: 12px; height: 3px; margin-right: 6px; vertical-align: middle; }
+        .wz-tip .hl { display: flex; align-items: center; gap: 6px; font-weight: 600; margin: 2px 0 4px; }
+        .wz-tip .hl i { width: 14px; height: 3px; }
+        .wz-tip .sep { border-top: 1px solid #333; margin: 4px 0; }
+        .wz-tip .th b { color: var(--th); }
+        .wz-tip .rain b { color: #6cc4ff; }
+
+        .cmp-legend { display: flex; flex-wrap: wrap; gap: 6px; padding: 8px 14px; background: #000; border-top: 1px solid #1c1c1c; }
+        .cmp-legend .chip { display: flex; align-items: center; gap: 6px; padding: 3px 10px; font-size: 12px; color: #ddd; }
+        .cmp-legend .chip i { width: 14px; height: 3px; border-radius: 2px; }
+        .cmp-legend .chip.off { opacity: 0.4; text-decoration: line-through; }
+
+        details.daily { border-top: 1px solid var(--border); }
+        details.daily summary { cursor: pointer; padding: 10px 14px; font-size: 13px; color: var(--muted); }
+        details.daily[open] summary { color: var(--text); }
+        .daily-wrap { overflow-x: auto; padding: 0 14px 14px; }
+        table.daily-t { border-collapse: collapse; width: 100%; font-size: 12.5px; white-space: nowrap; }
+        table.daily-t th, table.daily-t td { padding: 5px 8px; border-bottom: 1px solid var(--border); text-align: right; }
+        table.daily-t th:first-child, table.daily-t td:first-child { text-align: left; }
+        table.daily-t th { color: var(--muted); font-weight: 600; font-size: 11.5px; }
+        .daily-note { font-size: 11.5px; color: var(--muted); margin-top: 8px; line-height: 1.5; }
+
+        @media (max-width: 760px) {
+            .wz-panel { flex-direction: column; }
+            .wz-plot { order: 1; flex: none; height: 340px; }
+            .wz-legend { order: 2; width: auto; max-height: none; border-right: 0; border-top: 1px solid #1c1c1c; font-size: 11px; }
+            .wz-legend .ltoggle {
+                display: block; width: 100%; margin-bottom: 6px; padding: 6px 10px;
+                text-align: left; font-size: 12px;
+                background: #111; border-color: #333; color: #ddd;
+            }
+            .wz-legend.collapsed .lbody { display: none; }
+            .wz-legend .mem { grid-template-columns: repeat(auto-fill, minmax(54px, 1fr)); }
+            .chart-card.full .wz-plot { height: calc(100vh - 170px); }
+        }
 
         /* ---------- Pulsante aggiorna ---------- */
         .refresh-btn {
@@ -248,7 +356,7 @@
 
         /* ---------- Dialog ---------- */
         dialog {
-            width: min(600px, calc(100vw - 32px));
+            width: min(640px, calc(100vw - 32px));
             max-height: calc(100vh - 48px);
             background: var(--panel);
             color: var(--text);
@@ -345,7 +453,7 @@
             <div class="controls">
                 <select id="locSelect" aria-label="Località"></select>
                 <button id="manageBtn" title="Cerca, aggiungi o rimuovi località">📍 Località</button>
-                <button id="guideBtn" title="Come leggere i grafici e i modelli">❓ Guida</button>
+                <button id="guideBtn" title="Come leggere e usare i grafici">❓ Guida</button>
             </div>
         </div>
         <div class="toolbar">
@@ -369,6 +477,33 @@
                 <button data-cols="1" title="Una colonna">▭</button>
                 <button data-cols="2" title="Due colonne">▯▯</button>
             </div>
+        </div>
+        <div class="toolbar" id="anaBar">
+            <div class="group">
+                <span class="label">Periodo:</span>
+                <div class="seg" id="rangeSeg">
+                    <button data-range="3">3 g</button>
+                    <button data-range="5">5 g</button>
+                    <button data-range="7">7 g</button>
+                    <button data-range="10">10 g</button>
+                    <button data-range="0">Tutto</button>
+                </div>
+                <button class="small" id="zoomReset" hidden title="Annulla lo zoom (anche doppio clic sul grafico)">↺ Annulla zoom</button>
+            </div>
+            <div class="group popwrap">
+                <button class="small" id="layersBtn" aria-haspopup="true">☰ Livelli ▾</button>
+                <div class="popover" id="layersPop"></div>
+            </div>
+            <div class="group" title="Evidenzia una soglia e calcola la probabilità di superarla">
+                <label class="check"><input type="checkbox" id="thOn"> Soglia</label>
+                <select id="thDir" class="small" aria-label="Direzione soglia">
+                    <option value="ge">≥</option>
+                    <option value="le">≤</option>
+                </select>
+                <input id="thVal" class="th-input" type="text" inputmode="decimal" aria-label="Valore soglia">
+                <span class="unit" id="thUnit"></span>
+            </div>
+            <button class="chip" id="cmpBtn" title="Mostra un grafico che confronta tutti i modelli">⇄ Confronto modelli</button>
         </div>
     </header>
 
@@ -422,20 +557,32 @@
     <!-- Dialog guida -->
     <dialog id="guideDialog">
         <div class="dlg-head">
-            <h2>Come leggere i meteogrammi</h2>
+            <h2>Come leggere e usare i meteogrammi</h2>
             <button class="close" aria-label="Chiudi">✕</button>
         </div>
         <div class="dlg-body guide">
             <h4>Cos'è un ensemble</h4>
             <p>
                 Un modello <em>ensemble</em> viene eseguito decine di volte partendo da condizioni iniziali
-                leggermente diverse. Ogni esecuzione (<em>membro</em>) è uno scenario possibile.
+                leggermente diverse. Ogni esecuzione (<em>scenario</em>, P1, P2…) è un futuro possibile.
             </p>
             <ul>
-                <li><b>Linee vicine</b> → scenari concordi, previsione più affidabile.</li>
+                <li><b>Linee colorate vicine</b> → scenari concordi, previsione più affidabile.</li>
                 <li><b>Linee sparpagliate</b> → molta incertezza, la previsione può cambiare.</li>
-                <li>La <b>linea spessa</b> è la mediana; la <b>fascia colorata</b> contiene l'80% degli scenari (dal 10° al 90° percentile).</li>
-                <li>Per pioggia e neve le <b>barre</b> sono la quantità media ogni 6 ore e la <b>linea verde</b> è la probabilità (% di scenari) che si superi una soglia minima.</li>
+                <li>La <b>linea bianca spessa</b> è la media degli scenari, quella <b>verde</b> la corsa di controllo.</li>
+                <li>Nel grafico a 850 hPa le linee in basso (scala a destra) sono la <b>pioggia ogni 6 ore</b> di ciascuno scenario.</li>
+                <li>Per pioggia e neve la <b>linea gialla</b> è la probabilità (% di scenari) di superare la soglia.</li>
+            </ul>
+            <h4>Strumenti</h4>
+            <ul>
+                <li><b>Passa sopra al grafico</b> (o tocca e scorri in orizzontale col dito): valori e statistiche nel riquadro; lo scenario più vicino al puntatore viene evidenziato. La linea verticale si muove su tutti i grafici insieme.</li>
+                <li><b>Trascina col mouse</b> su un intervallo per ingrandirlo; <b>doppio clic</b> per tornare indietro. Su telefono usa i pulsanti <b>Periodo</b>.</li>
+                <li><b>Legenda</b>: clic su uno scenario per nasconderlo o mostrarlo, passa sopra per evidenziarlo.</li>
+                <li><b>Livelli</b>: attiva media, mediana, controllo, fasce di probabilità (10–90% e 25–75%).</li>
+                <li><b>Soglia</b>: disegna una linea (es. 0 °C a 850 hPa) e calcola la probabilità di superarla.</li>
+                <li><b>Confronto modelli</b>: media, dispersione o probabilità di tutti i modelli su un unico grafico.</li>
+                <li><b>Analisi giornaliera</b> sotto ogni grafico: minime, massime, pioggia e probabilità giorno per giorno.</li>
+                <li><b>PNG / CSV</b>: scarica l'immagine o i dati; <b>⛶</b> apre il grafico a schermo intero.</li>
             </ul>
             <h4>I modelli</h4>
             <div id="guideModels"></div>
@@ -443,6 +590,7 @@
             <p>
                 Grafici interattivi e ricerca località: <a href="https://open-meteo.com/" target="_blank" rel="noopener" style="color:var(--accent)">Open-Meteo</a> (dati CC BY 4.0).
                 Immagini: <a href="https://www.wetterzentrale.de/" target="_blank" rel="noopener" style="color:var(--accent)">Wetterzentrale.de</a>.
+                Gli orari dei grafici interattivi sono locali; l'orario della corsa è in UTC (Z).
             </p>
         </div>
     </dialog>
@@ -453,11 +601,11 @@
             { id: 'vinci', name: 'Vinci', sub: 'Toscana, Italia', lat: 43.7867, lon: 10.9262, geoid: '70549' }
         ];
 
-        // Modelli: identificativi Open-Meteo (om) e Wetterzentrale (wz)
+        // Modelli: identificativi Open-Meteo (om), metadati della corsa (meta) e Wetterzentrale (wz)
         const MODELS = [
             {
-                key: 'ecm', name: 'ECMWF', desc: 'Europeo',
-                om: 'ecmwf_ifs025_ensemble', days: 15,
+                key: 'ecm', name: 'ECMWF', desc: 'Europeo', color: '#4ea1ff',
+                om: 'ecmwf_ifs025_ensemble', meta: 'ecmwf_ifs025_ensemble', days: 15,
                 wz: { code: 'ecm', var: '201' },
                 facts: '51 scenari · 25 km · 15 giorni',
                 info: 'Modello del Centro Europeo per le Previsioni Meteorologiche a Medio Termine (ECMWF). ' +
@@ -465,8 +613,8 @@
                       'è in media tra i modelli globali più precisi. Aggiornato ogni 6 ore.'
             },
             {
-                key: 'gfs', name: 'GFS', desc: 'Americano',
-                om: 'ncep_gefs_seamless', days: 16,
+                key: 'gfs', name: 'GFS', desc: 'Americano', color: '#ff5c5c',
+                om: 'ncep_gefs_seamless', meta: 'ncep_gefs025', days: 16,
                 wz: { code: 'gfs', var: '201' },
                 facts: '31 scenari · 25–50 km · 16 giorni',
                 info: 'Ensemble del servizio meteorologico statunitense (NOAA). Risoluzione 0,25° (~25 km) per i primi ' +
@@ -474,8 +622,8 @@
                       'come cambia la tendenza da una corsa all\'altra.'
             },
             {
-                key: 'gem', name: 'GEM', desc: 'Canadese',
-                om: 'gem_global_ensemble', days: 16,
+                key: 'gem', name: 'GEM', desc: 'Canadese', color: '#ffb347',
+                om: 'gem_global_ensemble', meta: 'cmc_gem_geps', days: 16,
                 wz: { code: 'gem', var: '201' },
                 unavailable: ['gust'],
                 facts: '21 scenari · 25 km · 16 giorni',
@@ -484,8 +632,8 @@
                       'Non fornisce le raffiche di vento.'
             },
             {
-                key: 'ico', name: 'ICON', desc: 'Tedesco',
-                om: 'icon_seamless_eps', days: 8,
+                key: 'ico', name: 'ICON', desc: 'Tedesco', color: '#4cd97b',
+                om: 'icon_seamless_eps', meta: 'dwd_icon_eu_eps_native', days: 8,
                 wz: { code: 'ico', var: '5' },
                 unavailable: ['t850'],
                 facts: '40 scenari · 13–26 km · 7,5 giorni',
@@ -494,8 +642,8 @@
                       'da breve termine. Non fornisce la temperatura a 850 hPa.'
             },
             {
-                key: 'aifs', name: 'AIFS', desc: 'Intelligenza artificiale',
-                om: 'ecmwf_aifs025_ensemble', days: 15,
+                key: 'aifs', name: 'AIFS', desc: 'Intelligenza artificiale', color: '#d38cff',
+                om: 'ecmwf_aifs025_ensemble', meta: 'ecmwf_aifs025_ensemble', days: 15,
                 wz: { code: 'aifs', var: '201' },
                 unavailable: ['gust'],
                 facts: '51 scenari · 25 km · 15 giorni',
@@ -505,30 +653,50 @@
             }
         ];
 
-        // Variabili per i grafici interattivi
+        // Variabili per i grafici interattivi; th = soglia predefinita
         const VARIABLES = [
-            { key: 't850', label: 'Temperatura 850 hPa + pioggia', om: ['temperature_850hPa', 'precipitation'], kind: 'combo', unit: '°C',
-              note: 'La temperatura a circa 1500 m di quota: indica la massa d\'aria, senza gli effetti locali del suolo.' },
-            { key: 't2m',  label: 'Temperatura a 2 m',             om: ['temperature_2m'],   kind: 'line',  unit: '°C' },
-            { key: 'prec', label: 'Precipitazioni',                om: ['precipitation'],    kind: 'accum', unit: 'mm', threshold: 1 },
-            { key: 'snow', label: 'Neve',                          om: ['snowfall'],         kind: 'accum', unit: 'cm', threshold: 1 },
-            { key: 'wind', label: 'Vento medio (10 m)',            om: ['wind_speed_10m'],   kind: 'line',  unit: 'km/h', min: 0 },
-            { key: 'gust', label: 'Raffiche di vento',             om: ['wind_gusts_10m'],   kind: 'line',  unit: 'km/h', min: 0 },
-            { key: 'pres', label: 'Pressione al livello del mare', om: ['pressure_msl'],     kind: 'line',  unit: 'hPa' },
-            { key: 'cloud', label: 'Nuvolosità',                   om: ['cloud_cover'],      kind: 'line',  unit: '%', min: 0, max: 100 }
+            { key: 't850', label: 'Temperatura 850 hPa + pioggia', title: 'Temp. 850 hPa e precipitazioni',
+              om: ['temperature_850hPa', 'precipitation'], kind: 'combo', unit: '°C', th: { dir: 'le', val: 0 },
+              note: 'La temperatura a circa 1500 m di quota: indica la massa d\'aria, senza gli effetti locali del suolo. ' +
+                    'In basso, con la scala a destra, la pioggia ogni 6 ore di ciascuno scenario.' },
+            { key: 't2m',  label: 'Temperatura a 2 m', title: 'Temperatura a 2 m',
+              om: ['temperature_2m'], kind: 'line', unit: '°C', th: { dir: 'le', val: 0 } },
+            { key: 'prec', label: 'Precipitazioni', title: 'Precipitazioni ogni 6 ore',
+              om: ['precipitation'], kind: 'accum', unit: 'mm', th: { dir: 'ge', val: 1 } },
+            { key: 'snow', label: 'Neve', title: 'Neve fresca ogni 6 ore',
+              om: ['snowfall'], kind: 'accum', unit: 'cm', th: { dir: 'ge', val: 1 } },
+            { key: 'wind', label: 'Vento medio (10 m)', title: 'Vento medio a 10 m',
+              om: ['wind_speed_10m'], kind: 'line', unit: 'km/h', min: 0, th: { dir: 'ge', val: 30 } },
+            { key: 'gust', label: 'Raffiche di vento', title: 'Raffiche a 10 m',
+              om: ['wind_gusts_10m'], kind: 'line', unit: 'km/h', min: 0, th: { dir: 'ge', val: 50 } },
+            { key: 'pres', label: 'Pressione al livello del mare', title: 'Pressione al livello del mare',
+              om: ['pressure_msl'], kind: 'line', unit: 'hPa', th: { dir: 'le', val: 1005 } },
+            { key: 'cloud', label: 'Nuvolosità', title: 'Copertura nuvolosa',
+              om: ['cloud_cover'], kind: 'line', unit: '%', min: 0, max: 100, th: { dir: 'ge', val: 80 } }
+        ];
+
+        const CTRL_COLOR = '#39e639';
+        const RAIN_COLOR = '#6cc4ff';
+
+        const LAYERS = [
+            { key: 'members', label: 'Scenari (spaghetti)', swatch: 'linear-gradient(90deg,#3d7fd6,#3fbf7f,#b0b030,#d07a30,#c04060)' },
+            { key: 'mean',    label: 'Media degli scenari', swatch: '#fff' },
+            { key: 'median',  label: 'Mediana', swatch: 'repeating-linear-gradient(90deg,#fff 0 5px,transparent 5px 8px)' },
+            { key: 'control', label: 'Corsa di controllo', swatch: CTRL_COLOR },
+            { key: 'band90',  label: 'Fascia 10–90%', swatch: 'rgba(255,255,255,.35)' },
+            { key: 'band50',  label: 'Fascia 25–75%', swatch: 'rgba(255,255,255,.6)' },
+            { key: 'precip',  label: 'Pioggia (grafico 850 hPa)', swatch: RAIN_COLOR }
+        ];
+        const DEFAULT_LAYERS = { members: true, mean: true, median: false, control: true, band90: false, band50: false, precip: true };
+
+        const COMPARE_MODES = [
+            { key: 'mean', label: 'Media' },
+            { key: 'spread', label: 'Dispersione' },
+            { key: 'prob', label: 'Probabilità soglia' }
         ];
 
         const STORE_KEY = 'meteoEnsemble.v2';
         const OLD_STORE_KEY = 'meteoEnsemble.v1';
-
-        const COLORS = {
-            band: 'rgba(255, 255, 255, 0.10)',
-            median: '#ffffff',
-            precip: 'rgba(80, 200, 255, 0.75)',
-            prob: '#3ecf7a',
-            grid: 'rgba(255, 255, 255, 0.07)',
-            text: '#9aa1b0'
-        };
 
         // ================= Stato =================
         function loadState() {
@@ -556,13 +724,23 @@
             let locations = Array.isArray(saved.locations) ? saved.locations.filter(valid) : [];
             if (!locations.length) locations = DEFAULT_LOCATIONS.slice();
 
+            const layers = Object.assign({}, DEFAULT_LAYERS);
+            if (saved.layers && typeof saved.layers === 'object') {
+                Object.keys(DEFAULT_LAYERS).forEach(k => { if (typeof saved.layers[k] === 'boolean') layers[k] = saved.layers[k]; });
+            }
+
             return {
                 locations,
                 current: saved.current,
                 hidden: Array.isArray(saved.hidden) ? saved.hidden : [],
                 cols: saved.cols === 2 ? 2 : 1,
                 source: saved.source === 'wz' ? 'wz' : 'om',
-                variable: VARIABLES.some(v => v.key === saved.variable) ? saved.variable : 't850'
+                variable: VARIABLES.some(v => v.key === saved.variable) ? saved.variable : 't850',
+                layers,
+                range: [0, 3, 5, 7, 10].includes(saved.range) ? saved.range : 0,
+                thresholds: saved.thresholds && typeof saved.thresholds === 'object' ? saved.thresholds : {},
+                compare: saved.compare !== false,
+                compareMode: COMPARE_MODES.some(m => m.key === saved.compareMode) ? saved.compareMode : 'mean'
             };
         }
 
@@ -607,6 +785,19 @@
             return 'wz';
         }
 
+        // Soglia corrente per una variabile
+        function getTh(v = currentVariable()) {
+            const t = state.thresholds[v.key] || {};
+            return {
+                on: !!t.on,
+                dir: t.dir === 'ge' || t.dir === 'le' ? t.dir : v.th.dir,
+                val: typeof t.val === 'number' && isFinite(t.val) ? t.val : v.th.val
+            };
+        }
+        const thUnit = v => v.kind === 'accum' ? `${v.unit}/6 h` : v.unit;
+        const thLabel = (th, v) => `${th.dir === 'ge' ? '≥' : '≤'} ${nf.format(th.val)} ${thUnit(v)}`;
+        const meets = (x, th) => th.dir === 'ge' ? x >= th.val : x <= th.val;
+
         // ================= Utilità =================
         const $ = id => document.getElementById(id);
 
@@ -628,11 +819,22 @@
             return m ? m[1] : null;
         }
 
+        const isMobile = () => window.matchMedia('(max-width: 760px)').matches;
+
         // Le ore di Open-Meteo (timezone=auto) sono ore locali senza fuso: le trattiamo come UTC
         // e le formattiamo in UTC, così restano invariate.
+        const HOUR = 3600e3, DAY = 86400e3;
         const parseTime = t => Date.parse(t + ':00Z');
-        const fmtDay = new Intl.DateTimeFormat('it-IT', { weekday: 'short', day: 'numeric', timeZone: 'UTC' });
+        const fmtTick = new Intl.DateTimeFormat('it-IT', { weekday: 'short', day: '2-digit', month: '2-digit', timeZone: 'UTC' });
+        const fmtDayLong = new Intl.DateTimeFormat('it-IT', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' });
         const fmtFull = new Intl.DateTimeFormat('it-IT', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', timeZone: 'UTC' });
+        const hh = t => String(new Date(t).getUTCHours()).padStart(2, '0');
+        const fmtRun = d => `${fmtDayLong.format(d)} ${hh(d.getTime())}Z`;
+        const nf = new Intl.NumberFormat('it-IT', { maximumFractionDigits: 1 });
+        // Arrotonda a un decimale ed evita "-0"
+        const fmtV = (x, unit) => x == null || !isFinite(x) ? '—' : nf.format(Math.round(x * 10) / 10 || 0) + (unit ? ' ' + unit : '');
+        const pct = p => p == null ? '—' : Math.round(p) + '%';
+        const fmtCoord = (x, pos, neg) => `${Math.abs(x).toFixed(2)}${x >= 0 ? pos : neg}`;
 
         function quantile(sorted, q) {
             const pos = (sorted.length - 1) * q;
@@ -640,13 +842,32 @@
             return sorted[lo] + (sorted[hi] - sorted[lo]) * (pos - lo);
         }
 
-        // Colore di ogni scenario: tavolozza arcobaleno, come i meteogrammi classici
-        const memberColor = (i, n) => `hsla(${Math.round(360 * i / Math.max(n, 1))}, 85%, 62%, 0.55)`;
+        // Tavolozza degli scenari ispirata a Wetterzentrale: blu → verde → oliva → arancio → rosso, ciclica ogni 20
+        const memberColor = k => `hsl(${(220 - ((k - 1) % 20) * 13 + 360) % 360}, 68%, 54%)`;
 
-        const round1 = v => v == null ? null : Math.round(v * 10) / 10;
+        function lastValidIndex(arr) {
+            for (let i = arr.length - 1; i >= 0; i--) if (arr[i] != null) return i;
+            return -1;
+        }
+
+        function niceStep(raw) {
+            const mag = Math.pow(10, Math.floor(Math.log10(raw)));
+            for (const f of [1, 2, 2.5, 5, 10]) if (f * mag >= raw) return f * mag;
+            return 10 * mag;
+        }
+
+        function download(href, name) {
+            const a = el('a', { href, download: name });
+            document.body.append(a);
+            a.click();
+            a.remove();
+        }
+
+        const safeName = s => String(s).replace(/[^\w-]+/g, '_');
 
         // ================= Dati Open-Meteo =================
         const cache = new Map();
+        const metaCache = new Map();
 
         async function fetchEnsemble(model, loc, vars) {
             const url = 'https://ensemble-api.open-meteo.com/v1/ensemble?' + new URLSearchParams({
@@ -669,179 +890,980 @@
             return promise;
         }
 
-        // Estrae dalla risposta tutte le serie (controllo + membri) di una variabile
-        function extractMembers(hourly, varName, modelId) {
-            const re = new RegExp(`^${varName}(_member\\d+)?(_${modelId})?$`);
-            return Object.keys(hourly)
-                .filter(k => re.test(k))
-                .map(k => hourly[k])
-                .filter(arr => Array.isArray(arr) && arr.some(v => v != null));
+        // Orario di inizializzazione dell'ultima corsa del modello
+        function fetchRun(model) {
+            if (!metaCache.has(model.meta)) {
+                metaCache.set(model.meta,
+                    fetch(`https://ensemble-api.open-meteo.com/data/${model.meta}/static/meta.json`)
+                        .then(r => r.ok ? r.json() : null)
+                        .then(j => j && j.last_run_initialisation_time ? new Date(j.last_run_initialisation_time * 1000) : null)
+                        .catch(() => null));
+            }
+            return metaCache.get(model.meta);
         }
 
-        function stats(members, n) {
-            const p10 = [], p50 = [], p90 = [];
+        // Tutte le serie (controllo + scenari) di una variabile
+        function collectMembers(hourly, varName, modelId) {
+            const re = new RegExp(`^${varName}(?:_member(\\d+))?(?:_${modelId})?$`);
+            const out = [];
+            Object.keys(hourly).forEach(k => {
+                const mm = k.match(re);
+                const arr = hourly[k];
+                if (!mm || !Array.isArray(arr) || !arr.some(x => x != null)) return;
+                const num = mm[1] ? parseInt(mm[1], 10) : 0;
+                out.push({ num, name: num === 0 ? 'Controllo' : 'P' + num, arr });
+            });
+            return out;
+        }
+
+        function seriesStats(arrs, n) {
+            const keys = ['mean', 'median', 'p10', 'p25', 'p75', 'p90', 'min', 'max'];
+            const st = {};
+            keys.forEach(k => st[k] = new Array(n).fill(null));
             for (let i = 0; i < n; i++) {
-                const vals = members.map(m => m[i]).filter(v => v != null).sort((a, b) => a - b);
-                if (vals.length < 3) { p10.push(null); p50.push(null); p90.push(null); continue; }
-                p10.push(quantile(vals, 0.1));
-                p50.push(quantile(vals, 0.5));
-                p90.push(quantile(vals, 0.9));
+                const vals = [];
+                arrs.forEach(a => { if (a[i] != null) vals.push(a[i]); });
+                if (vals.length < 2) continue;
+                vals.sort((a, b) => a - b);
+                st.mean[i] = vals.reduce((a, b) => a + b, 0) / vals.length;
+                st.median[i] = quantile(vals, 0.5);
+                st.p10[i] = quantile(vals, 0.1);
+                st.p25[i] = quantile(vals, 0.25);
+                st.p75[i] = quantile(vals, 0.75);
+                st.p90[i] = quantile(vals, 0.9);
+                st.min[i] = vals[0];
+                st.max[i] = vals[vals.length - 1];
             }
-            return { p10, p50, p90 };
+            return st;
         }
 
-        // Accumula su blocchi di 6 ore: media dei membri e % di membri sopra soglia.
-        // Il valore viene ripetuto su tutte le ore del blocco (disegnato a gradini).
-        function accumulate6h(members, times, threshold) {
-            const n = times.length;
-            const mean = new Array(n).fill(null), prob = new Array(n).fill(null);
-            let start = 0;
-            while (start < n) {
-                const block = Math.floor(new Date(times[start] - 3600e3).getUTCHours() / 6);
-                let end = start;
-                while (end + 1 < n && Math.floor(new Date(times[end + 1] - 3600e3).getUTCHours() / 6) === block &&
-                       times[end + 1] - times[start] < 6 * 3600e3) end++;
-                const sums = [];
-                members.forEach(m => {
-                    let s = 0, ok = false;
-                    for (let i = start; i <= end; i++) if (m[i] != null) { s += m[i]; ok = true; }
-                    if (ok) sums.push(s);
-                });
-                if (sums.length >= 3) {
-                    const avg = sums.reduce((a, b) => a + b, 0) / sums.length;
-                    const p = 100 * sums.filter(s => s >= threshold).length / sums.length;
-                    for (let i = start; i <= end; i++) { mean[i] = avg; prob[i] = p; }
-                }
-                start = end + 1;
+        // Blocchi di 6 ore allineati a 00/06/12/18 locali. Il valore orario è l'accumulo dell'ora precedente.
+        function buildBlocks(times, lastIdx) {
+            const blocks = [];
+            let cur = null;
+            for (let i = 0; i <= lastIdx; i++) {
+                const start = Math.floor((times[i] - HOUR) / (6 * HOUR)) * 6 * HOUR;
+                if (!cur || cur.start !== start) {
+                    cur = { start, end: start + 6 * HOUR, mid: start + 3 * HOUR, i0: i, i1: i };
+                    blocks.push(cur);
+                } else cur.i1 = i;
             }
-            return { mean, prob };
+            return blocks.filter(b => b.i1 - b.i0 + 1 >= 6);
         }
 
-        // ================= Grafici =================
-        let charts = [];
-
-        function destroyCharts() {
-            charts.forEach(c => c.destroy());
-            charts = [];
+        function sumRange(arr, i0, i1) {
+            let s = 0, ok = false;
+            for (let i = i0; i <= i1; i++) if (arr[i] != null) { s += arr[i]; ok = true; }
+            return ok ? s : null;
         }
 
-        function lastValidIndex(arr) {
-            for (let i = arr.length - 1; i >= 0; i--) if (arr[i] != null) return i;
-            return -1;
+        function probOf(vals, th) {
+            const valid = vals.filter(x => x != null);
+            if (!valid.length) return null;
+            return 100 * valid.filter(x => meets(x, th)).length / valid.length;
         }
 
-        function buildChart(canvas, data, variable, modelId) {
-            const times = data.hourly.time.map(parseTime);
-            const xy = arr => arr.map((y, i) => ({ x: times[i], y: round1(y) }));
-            const datasets = [];
-            const scales = {};
-            const legend = [];
-            let lastIdx = -1;
-
-            const lineVar = variable.kind === 'line' || variable.kind === 'combo' ? variable.om[0] : null;
+        function processSeries(data, variable, model) {
+            const h = data.hourly;
+            if (!h || !Array.isArray(h.time)) return null;
+            const times = h.time.map(parseTime);
+            const lineVar = variable.kind === 'accum' ? null : variable.om[0];
             const accVar = variable.kind === 'accum' ? variable.om[0] : (variable.kind === 'combo' ? variable.om[1] : null);
+            const main = lineVar ? collectMembers(h, lineVar, model.om) : null;
+            const acc = accVar ? collectMembers(h, accVar, model.om) : null;
+            if (lineVar ? !main.length : !acc.length) return null;
 
-            if (lineVar) {
-                const members = extractMembers(data.hourly, lineVar, modelId);
-                if (!members.length) return null;
-                const s = stats(members, times.length);
-                lastIdx = Math.max(lastIdx, lastValidIndex(s.p50));
-                members.forEach((m, i) => datasets.push({
-                    data: xy(m), borderColor: memberColor(i, members.length), borderWidth: 1, pointRadius: 0, tooltip: false, order: 5
-                }));
-                datasets.push({ label: '10° perc.', data: xy(s.p10), borderWidth: 0, pointRadius: 0, order: 4 });
-                datasets.push({ label: '90° perc.', data: xy(s.p90), borderWidth: 0, pointRadius: 0,
-                                backgroundColor: COLORS.band, fill: '-1', order: 4 });
-                datasets.push({ label: 'Mediana', data: xy(s.p50), borderColor: COLORS.median, borderWidth: 2.5, pointRadius: 0, order: 1 });
-                scales.y = {
-                    position: 'left',
-                    title: { display: true, text: variable.unit, color: COLORS.text },
-                    grid: { color: COLORS.grid },
-                    suggestedMin: variable.min, max: variable.max
-                };
-                legend.push(['Mediana', COLORS.median], ['10–90% degli scenari', COLORS.band], ['Singoli scenari', 'linear-gradient(90deg,#4e9bff,#3ecf7a,#ffd23f,#ff6b4a,#d76bff)']);
+            const byName = new Map();
+            const add = (list, field) => list.forEach(m => {
+                if (!byName.has(m.name)) byName.set(m.name, { name: m.name, num: m.num, color: m.num === 0 ? CTRL_COLOR : memberColor(m.num) });
+                byName.get(m.name)[field] = m.arr;
+            });
+            if (main) add(main, 'main');
+            if (acc) add(acc, 'hourlyAcc');
+            const members = [...byName.values()].sort((a, b) => a.num - b.num);
+
+            let lastIdx = -1;
+            members.forEach(m => [lineVar ? m.main : m.hourlyAcc].forEach(arr => {
+                if (arr) lastIdx = Math.max(lastIdx, lastValidIndex(arr));
+            }));
+            if (lastIdx < 1) return null;
+
+            const s = {
+                model, variable, times, labels: h.time, members, lastIdx,
+                t0: times[0], xMax: times[lastIdx],
+                lat: data.latitude, lon: data.longitude, elev: data.elevation
+            };
+            if (main) s.mainStats = seriesStats(members.filter(m => m.main).map(m => m.main), lastIdx + 1);
+            if (acc) {
+                const accLast = Math.max(...members.filter(m => m.hourlyAcc).map(m => lastValidIndex(m.hourlyAcc)));
+                s.blocks = buildBlocks(times, accLast);
+                members.forEach(m => { if (m.hourlyAcc) m.acc = s.blocks.map(b => sumRange(m.hourlyAcc, b.i0, b.i1)); });
+                s.accStats = seriesStats(members.filter(m => m.acc).map(m => m.acc), s.blocks.length);
+                if (!lineVar) s.xMax = s.blocks.length ? s.blocks[s.blocks.length - 1].end : s.xMax;
             }
+            return s;
+        }
 
-            if (accVar) {
-                const members = extractMembers(data.hourly, accVar, modelId);
-                if (!members.length && !lineVar) return null;
-                if (members.length) {
-                    const unit = variable.kind === 'combo' ? 'mm' : variable.unit;
-                    const threshold = variable.threshold || 1;
-                    const acc = accumulate6h(members, times, threshold);
-                    lastIdx = Math.max(lastIdx, lastValidIndex(acc.mean));
-                    const axis = lineVar ? 'y2' : 'y';
-                    datasets.push({
-                        label: `Media 6 h (${unit})`, data: xy(acc.mean), yAxisID: axis,
-                        stepped: 'middle', borderColor: COLORS.precip, borderWidth: 1, pointRadius: 0,
-                        backgroundColor: 'rgba(80, 200, 255, 0.35)', fill: 'origin', order: 3
-                    });
-                    scales[axis] = {
-                        position: lineVar ? 'right' : 'left', beginAtZero: true, suggestedMax: unit === 'cm' ? 5 : 10,
-                        title: { display: true, text: `${unit} / 6 h`, color: COLORS.text },
-                        grid: { color: lineVar ? 'transparent' : COLORS.grid }
-                    };
-                    legend.push([`Media ogni 6 ore (${unit})`, COLORS.precip]);
-                    if (!lineVar) {
-                        datasets.push({
-                            label: `Prob. ≥ ${threshold} ${unit} (%)`, data: xy(acc.prob), yAxisID: 'yp',
-                            stepped: 'middle', borderColor: COLORS.prob, borderWidth: 1.5, pointRadius: 0, order: 2
-                        });
-                        scales.yp = {
-                            position: 'right', min: 0, max: 100,
-                            title: { display: true, text: 'probabilità %', color: COLORS.text },
-                            grid: { color: 'transparent' }
-                        };
-                        legend.push([`Probabilità ≥ ${threshold} ${unit} in 6 ore`, COLORS.prob]);
+        const hourIndex = (s, t) => Math.max(0, Math.min(s.lastIdx, Math.round((t - s.t0) / HOUR)));
+        function blockIndex(s, t) {
+            if (!s.blocks) return null;
+            const j = s.blocks.findIndex(b => t >= b.start && t < b.end);
+            return j < 0 ? null : j;
+        }
+
+        // Probabilità di soglia nel tempo (per ora o per blocco di 6 h)
+        function probSeries(s, th) {
+            if (s.variable.kind === 'accum') {
+                return s.blocks.map((b, j) => probOf(s.members.filter(m => m.acc).map(m => m.acc[j]), th));
+            }
+            const out = [];
+            for (let i = 0; i <= s.lastIdx; i++) out.push(probOf(s.members.filter(m => m.main).map(m => m.main[i]), th));
+            return out;
+        }
+
+        // ================= Motore dei grafici =================
+        let entries = [];            // un elemento per modello mostrato
+        let compareEntry = null;     // grafico di confronto
+        const allCS = new Set();     // tutti i grafici attivi (stato interattivo)
+        let hoverT = null;           // istante sotto il puntatore, condiviso tra i grafici
+        let customView = null;       // zoom libero {min, max}
+        let glob = { t0: NaN, tmax: NaN };
+        const cmpOff = new Set();    // modelli nascosti nel confronto
+
+        const line = (data, color, width, extra = {}) => Object.assign({
+            data, borderColor: color, borderWidth: width, pointRadius: 0, pointHoverRadius: 0,
+            tension: 0, fill: false, borderJoinStyle: 'round'
+        }, extra);
+        const bandLow = data => ({ data, borderWidth: 0, pointRadius: 0, fill: false, _kind: 'band', order: 9 });
+        const bandHigh = (data, color) => ({ data, borderWidth: 0, pointRadius: 0, fill: '-1', backgroundColor: color, _kind: 'band', order: 9 });
+
+        function axis(opts) {
+            return {
+                position: opts.position,
+                min: opts.min, max: opts.max,
+                title: { display: true, text: opts.title, color: '#fff', font: { size: 11 } },
+                ticks: { color: '#fff', font: { size: 11 } },
+                grid: { color: opts.grid === false ? 'transparent' : 'rgba(255,255,255,0.22)' },
+                border: { color: '#777', dash: [2, 3] }
+            };
+        }
+
+        const isMidnight = v => ((v % DAY) + DAY) % DAY === 0;
+
+        function xAxis() {
+            return {
+                type: 'linear',
+                grid: { color: ctx => ctx.tick && isMidnight(ctx.tick.value) ? 'rgba(255,255,255,0.3)' : 'rgba(255,255,255,0.11)' },
+                border: { color: '#777', dash: [2, 3] },
+                afterBuildTicks: ax => {
+                    const min = ax.min, max = ax.max;
+                    if (!isFinite(min) || !isFinite(max) || max <= min) return;
+                    const ppd = (ax.width || 600) / ((max - min) / DAY);
+                    ax._ppd = ppd;
+                    const step = Math.max(1, Math.ceil(64 / ppd));
+                    const sub = ppd >= 480 ? 3 * HOUR : ppd >= 240 ? 6 * HOUR : ppd >= 90 ? 12 * HOUR : DAY;
+                    const ticks = [];
+                    for (let t = Math.ceil(min / sub) * sub; t <= max; t += sub) {
+                        if (isMidnight(t) && Math.round(t / DAY) % step !== 0) continue;
+                        ticks.push({ value: t });
+                    }
+                    ax.ticks = ticks;
+                },
+                ticks: {
+                    color: '#fff', font: { size: 11 }, maxRotation: 0, autoSkip: false,
+                    callback: function (v) {
+                        if (isMidnight(v)) return fmtTick.format(v);
+                        return this._ppd >= 240 ? hh(v) : '';
                     }
                 }
-            }
-
-            if (lastIdx < 0) return null;
-            const xMin = times[0], xMax = times[lastIdx];
-
-            scales.x = {
-                type: 'linear', min: xMin, max: xMax,
-                grid: { color: COLORS.grid },
-                afterBuildTicks: axis => {
-                    const ticks = [];
-                    // Un'etichetta ogni ~60 px circa
-                    const days = (xMax - xMin) / 86400e3;
-                    const step = Math.max(1, Math.ceil(days / Math.max(1, (axis.width || 600) / 60)));
-                    let d = new Date(xMin); d.setUTCHours(0, 0, 0, 0);
-                    let i = 0;
-                    for (let t = d.getTime(); t <= xMax; t += 86400e3, i++) {
-                        if (t >= xMin && i % step === 0) ticks.push({ value: t });
-                    }
-                    axis.ticks = ticks;
-                },
-                ticks: { maxRotation: 0, autoSkip: false, callback: v => fmtDay.format(v) }
             };
+        }
 
-            const chart = new Chart(canvas, {
+        // Plugin: sfondo nero, soglia, piè di pagina
+        const bgPlugin = {
+            id: 'wzBg',
+            beforeDraw(c) {
+                const ctx = c.ctx;
+                ctx.save();
+                ctx.fillStyle = '#000';
+                ctx.fillRect(0, 0, c.width, c.height);
+                ctx.restore();
+            }
+        };
+
+        function decorPlugin(cs) {
+            return {
+                id: 'wzDecor',
+                afterDatasetsDraw(c) {
+                    if (cs.thLine == null || !c.scales.y) return;
+                    const y = c.scales.y, a = c.chartArea;
+                    if (cs.thLine < y.min || cs.thLine > y.max) return;
+                    const py = y.getPixelForValue(cs.thLine);
+                    const ctx = c.ctx;
+                    ctx.save();
+                    ctx.strokeStyle = '#ffd23f';
+                    ctx.lineWidth = 1.5;
+                    ctx.setLineDash([7, 4]);
+                    ctx.beginPath();
+                    ctx.moveTo(a.left, py);
+                    ctx.lineTo(a.right, py);
+                    ctx.stroke();
+                    ctx.setLineDash([]);
+                    ctx.fillStyle = '#ffd23f';
+                    ctx.font = 'bold 11px Arial, sans-serif';
+                    ctx.textAlign = 'right';
+                    ctx.textBaseline = 'bottom';
+                    ctx.fillText(cs.thText || '', a.right - 4, py - 3);
+                    ctx.restore();
+                },
+                afterDraw(c) {
+                    const ctx = c.ctx, a = c.chartArea;
+                    ctx.save();
+                    ctx.fillStyle = '#fff';
+                    ctx.font = '11px Arial, sans-serif';
+                    ctx.textBaseline = 'bottom';
+                    ctx.textAlign = 'left';
+                    ctx.fillText(cs.footL || '', a.left, c.height - 3);
+                    // Il testo a destra solo se c'è spazio
+                    const wl = ctx.measureText(cs.footL || '').width, wr = ctx.measureText(cs.footR || '').width;
+                    if (a.left + wl + 12 + wr <= a.right) {
+                        ctx.textAlign = 'right';
+                        ctx.fillText(cs.footR || '', a.right, c.height - 3);
+                    }
+                    ctx.restore();
+                }
+            };
+        }
+
+        // Crea lo stato interattivo di un grafico: canvas principale + canvas sovrapposto per mirino ed evidenziazioni
+        function makeCS(plotEl, extra) {
+            plotEl.querySelectorAll('canvas').forEach(c => c.remove());
+            const canvas = el('canvas');
+            const ov = el('canvas', { className: 'ov' });
+            plotEl.prepend(canvas, ov);
+            const cs = Object.assign({
+                canvas, ov, octx: ov.getContext('2d'), plotEl,
+                tip: plotEl.querySelector('.wz-tip'),
+                highlight: null, legendHL: null, drag: null
+            }, extra);
+            attachPointer(cs);
+            allCS.add(cs);
+            return cs;
+        }
+
+        function destroyCS(cs) {
+            if (!cs) return;
+            if (cs.chart) cs.chart.destroy();
+            cs.chart = null;
+            allCS.delete(cs);
+            cs.canvas.remove();
+            cs.ov.remove();
+            if (cs.tip) cs.tip.style.display = 'none';
+        }
+
+        function sizeOverlay(cs, w, h) {
+            const dpr = window.devicePixelRatio || 1;
+            cs.ov.width = Math.max(1, Math.round(w * dpr));
+            cs.ov.height = Math.max(1, Math.round(h * dpr));
+            cs.octx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        }
+
+        function chartConfig(cs, datasets, scales, title) {
+            const small = cs.plotEl.clientWidth < 520;
+            return {
                 type: 'line',
                 data: { datasets },
                 options: {
                     animation: false,
+                    responsive: true,
                     maintainAspectRatio: false,
                     parsing: false,
                     normalized: true,
                     spanGaps: true,
-                    interaction: { mode: 'index', intersect: false },
+                    events: [],
+                    layout: { padding: { left: 4, right: 10, top: 0, bottom: 18 } },
                     plugins: {
                         legend: { display: false },
-                        tooltip: {
-                            filter: item => item.dataset.tooltip !== false && item.parsed.y != null,
-                            callbacks: {
-                                title: items => items.length ? fmtFull.format(items[0].parsed.x) : '',
-                                label: item => ` ${item.dataset.label}: ${item.parsed.y.toLocaleString('it-IT', { maximumFractionDigits: 1 })}`
-                            }
-                        }
+                        tooltip: { enabled: false },
+                        title: { display: true, text: title, color: '#fff', font: { size: small ? 11 : 13, weight: 'bold' }, padding: { top: 8, bottom: 8 } }
                     },
-                    scales
+                    scales,
+                    onResize: (c, size) => { sizeOverlay(cs, size.width, size.height); scheduleOverlays(); }
+                },
+                plugins: [bgPlugin, decorPlugin(cs)]
+            };
+        }
+
+        // Adatta l'asse verticale ai dati visibili nell'intervallo mostrato
+        function fitY(cs) {
+            const c = cs.chart;
+            const xs = c.options.scales.x;
+            let lo = Infinity, hi = -Infinity, hi2 = 0;
+            c.data.datasets.forEach(d => {
+                if (d.hidden || d._noFit) return;
+                const ax = d.yAxisID || 'y';
+                for (const p of d.data) {
+                    if (p.y == null || p.x < xs.min || p.x > xs.max) continue;
+                    if (ax === 'y') { if (p.y < lo) lo = p.y; if (p.y > hi) hi = p.y; }
+                    else if (ax === 'y2' && p.y > hi2) hi2 = p.y;
                 }
             });
-            return { chart, legend };
+            const f = cs.fit || {};
+            const y = c.options.scales.y;
+            if (f.fixed) { y.min = f.fixed.min; y.max = f.fixed.max; }
+            else {
+                if (cs.thLine != null) { lo = Math.min(lo, cs.thLine); hi = Math.max(hi, cs.thLine); }
+                if (!isFinite(lo) || !isFinite(hi)) { lo = f.floor != null ? f.floor : 0; hi = lo + 1; }
+                if (f.floor != null) lo = f.floor;
+                if (hi - lo < 1e-6) hi = lo + 1;
+                const pad = (hi - lo) * 0.04;
+                const lo2 = f.floor != null ? lo : lo - pad, hi2p = hi + pad;
+                const step = niceStep((hi2p - lo2) / 7);
+                y.min = Math.floor(lo2 / step) * step;
+                y.max = Math.ceil(hi2p / step) * step;
+            }
+            if (c.options.scales.y2) {
+                c.options.scales.y2.min = 0;
+                c.options.scales.y2.max = niceStep(Math.max(hi2 * 2.2, 8));
+            }
+        }
+
+        function viewRange() {
+            if (!isFinite(glob.t0)) return [undefined, undefined];
+            if (customView) return [customView.min, customView.max];
+            if (state.range) return [glob.t0, Math.min(glob.t0 + state.range * DAY, glob.tmax)];
+            return [glob.t0, glob.tmax];
+        }
+
+        function applyView(cs) {
+            if (!cs.chart) return;
+            const [min, max] = viewRange();
+            const xs = cs.chart.options.scales.x;
+            xs.min = min;
+            xs.max = max;
+            fitY(cs);
+            cs.chart.update('none');
+            scheduleOverlays();
+        }
+
+        function applyViewAll() {
+            allCS.forEach(applyView);
+            $('zoomReset').hidden = !customView;
+            document.querySelectorAll('#rangeSeg button').forEach(b =>
+                b.classList.toggle('on', !customView && Number(b.dataset.range) === state.range));
+        }
+
+        function updateGlobals() {
+            const ready = entries.filter(e => e.series);
+            const t0 = Math.min(...ready.map(e => e.series.t0));
+            const tmax = Math.max(...ready.map(e => e.series.xMax));
+            if (t0 !== glob.t0 || tmax !== glob.tmax) {
+                glob = { t0, tmax };
+                applyViewAll();
+            }
+        }
+
+        // ---------- Sovrapposizione: mirino, scenario evidenziato, selezione zoom ----------
+        let overlayPending = false;
+        function scheduleOverlays() {
+            if (overlayPending) return;
+            overlayPending = true;
+            requestAnimationFrame(() => {
+                overlayPending = false;
+                allCS.forEach(drawOverlay);
+            });
+        }
+
+        function drawOverlay(cs) {
+            const c = cs.chart;
+            if (!c || !c.chartArea) return;
+            const ctx = cs.octx, a = c.chartArea;
+            ctx.clearRect(0, 0, c.width, c.height);
+            ctx.save();
+            ctx.beginPath();
+            ctx.rect(a.left, a.top, a.right - a.left, a.bottom - a.top);
+            ctx.clip();
+
+            if (cs.drag) {
+                const x0 = Math.min(cs.drag.x0, cs.drag.x1), x1 = Math.max(cs.drag.x0, cs.drag.x1);
+                ctx.fillStyle = 'rgba(255,255,255,0.14)';
+                ctx.fillRect(x0, a.top, x1 - x0, a.bottom - a.top);
+                ctx.strokeStyle = 'rgba(255,255,255,0.6)';
+                ctx.strokeRect(x0 + 0.5, a.top + 0.5, x1 - x0, a.bottom - a.top - 1);
+            }
+
+            if (cs.highlight && cs.series) drawMember(cs, cs.highlight);
+
+            if (hoverT != null) {
+                const xs = c.scales.x;
+                if (hoverT >= xs.min && hoverT <= xs.max) {
+                    const x = Math.round(xs.getPixelForValue(hoverT)) + 0.5;
+                    ctx.strokeStyle = 'rgba(255,255,255,0.8)';
+                    ctx.lineWidth = 1;
+                    ctx.beginPath();
+                    ctx.moveTo(x, a.top);
+                    ctx.lineTo(x, a.bottom);
+                    ctx.stroke();
+                }
+            }
+            ctx.restore();
+        }
+
+        function drawMember(cs, name) {
+            const s = cs.series, c = cs.chart, ctx = cs.octx;
+            const m = s.members.find(mm => mm.name === name);
+            if (!m) return;
+            const xs = c.scales.x;
+            const paths = [];
+            if (s.variable.kind !== 'accum' && m.main) {
+                const pts = [];
+                for (let i = 0; i <= s.lastIdx; i++) pts.push([s.times[i], m.main[i]]);
+                paths.push([c.scales.y, pts]);
+            }
+            const accAxis = s.variable.kind === 'accum' ? c.scales.y : c.scales.y2;
+            if (m.acc && accAxis) paths.push([accAxis, s.blocks.map((b, j) => [b.mid, m.acc[j]])]);
+            paths.forEach(([ay, pts]) => {
+                [[5.5, 'rgba(0,0,0,0.9)'], [2.6, m.color]].forEach(([w, col]) => {
+                    ctx.beginPath();
+                    let pen = false;
+                    pts.forEach(([x, y]) => {
+                        if (y == null) return;
+                        const px = xs.getPixelForValue(x), py = ay.getPixelForValue(y);
+                        if (pen) ctx.lineTo(px, py); else { ctx.moveTo(px, py); pen = true; }
+                    });
+                    ctx.lineWidth = w;
+                    ctx.strokeStyle = col;
+                    ctx.lineJoin = 'round';
+                    ctx.stroke();
+                });
+            });
+        }
+
+        // ---------- Puntatore: mirino condiviso, scenario più vicino, trascina per zoom ----------
+        const inArea = (a, x, y) => x >= a.left && x <= a.right && y >= a.top && y <= a.bottom;
+
+        function attachPointer(cs) {
+            const ov = cs.ov;
+            ov.addEventListener('pointerdown', e => {
+                if (!cs.chart) return;
+                if (e.pointerType === 'mouse') {
+                    if (e.button !== 0 || !inArea(cs.chart.chartArea, e.offsetX, e.offsetY)) return;
+                    cs.drag = { x0: e.offsetX, x1: e.offsetX };
+                    ov.setPointerCapture(e.pointerId);
+                } else onHover(cs, e);
+            });
+            ov.addEventListener('pointermove', e => onHover(cs, e));
+            ov.addEventListener('pointerup', () => {
+                if (!cs.drag) return;
+                const d = cs.drag;
+                cs.drag = null;
+                if (Math.abs(d.x1 - d.x0) > 8) {
+                    const xs = cs.chart.scales.x;
+                    const a = xs.getValueForPixel(Math.min(d.x0, d.x1)), b = xs.getValueForPixel(Math.max(d.x0, d.x1));
+                    if (b - a >= 3 * HOUR) {
+                        customView = { min: a, max: b };
+                        applyViewAll();
+                    }
+                }
+                scheduleOverlays();
+            });
+            ov.addEventListener('pointerleave', e => { if (e.pointerType === 'mouse' && !cs.drag) clearHover(); });
+            ov.addEventListener('dblclick', () => { customView = null; applyViewAll(); });
+        }
+
+        function onHover(cs, e) {
+            const c = cs.chart;
+            if (!c || !c.chartArea) return;
+            const a = c.chartArea, x = e.offsetX, y = e.offsetY;
+            if (cs.drag) {
+                cs.drag.x1 = Math.max(a.left, Math.min(a.right, x));
+                scheduleOverlays();
+                return;
+            }
+            if (!inArea(a, x, y)) { if (e.pointerType === 'mouse') clearHover(); return; }
+            hoverT = c.scales.x.getValueForPixel(x);
+            allCS.forEach(o => { if (o !== cs) { o.highlight = o.legendHL; if (o.tip) o.tip.style.display = 'none'; } });
+            cs.highlight = cs.series ? (nearestMember(cs, y) || cs.legendHL) : null;
+            showTip(cs, x, y);
+            scheduleOverlays();
+        }
+
+        function clearHover() {
+            hoverT = null;
+            allCS.forEach(o => { o.highlight = o.legendHL; if (o.tip) o.tip.style.display = 'none'; });
+            scheduleOverlays();
+        }
+        document.addEventListener('pointerdown', e => { if (!e.target.closest('.wz-plot')) clearHover(); });
+
+        function memberVisible(cs, m) {
+            if (m.num === 0) return state.layers.control;
+            return state.layers.members && !cs.off.has(m.name);
+        }
+
+        function nearestMember(cs, y) {
+            const s = cs.series, c = cs.chart;
+            const i = hourIndex(s, hoverT), j = blockIndex(s, hoverT);
+            const accAxis = s.variable.kind === 'accum' ? c.scales.y : (state.layers.precip ? c.scales.y2 : null);
+            let best = null, bd = 12;
+            s.members.forEach(m => {
+                if (!memberVisible(cs, m)) return;
+                const cand = [];
+                if (s.variable.kind !== 'accum' && m.main && m.main[i] != null) cand.push(c.scales.y.getPixelForValue(m.main[i]));
+                if (accAxis && m.acc && j != null && m.acc[j] != null) cand.push(accAxis.getPixelForValue(m.acc[j]));
+                cand.forEach(py => { const d = Math.abs(py - y); if (d < bd) { bd = d; best = m.name; } });
+            });
+            return best;
+        }
+
+        // ---------- Riquadro informazioni ----------
+        const tipRow = (label, value, cls = '', color = null) =>
+            el('div', { className: 'r ' + cls }, [
+                el('span', {}, color ? [el('i', { style: `background:${color}` }), label] : [label]),
+                el('b', { textContent: value })
+            ]);
+        const tipSep = () => el('div', { className: 'sep' });
+
+        function showTip(cs, x, y) {
+            const tip = cs.tip;
+            if (!tip) return;
+            const content = cs.series ? modelTip(cs) : compareTip(cs);
+            if (!content) { tip.style.display = 'none'; return; }
+            tip.replaceChildren(...content);
+            tip.style.display = 'block';
+            const W = cs.plotEl.clientWidth, H = cs.plotEl.clientHeight;
+            const tw = tip.offsetWidth, th = tip.offsetHeight;
+            let left = x + 16;
+            if (left + tw > W - 4) left = x - 16 - tw;
+            tip.style.left = Math.max(4, left) + 'px';
+            tip.style.top = Math.max(4, Math.min(H - th - 4, y - th / 2)) + 'px';
+        }
+
+        function modelTip(cs) {
+            const s = cs.series, v = s.variable, th = getTh(v);
+            const out = [];
+            const hlM = cs.highlight ? s.members.find(m => m.name === cs.highlight) : null;
+            const ctrl = s.members.find(m => m.num === 0);
+            if (v.kind !== 'accum') {
+                const i = hourIndex(s, hoverT), st = s.mainStats;
+                out.push(el('div', { className: 't', textContent: fmtFull.format(s.times[i]) }));
+                if (hlM && hlM.main) out.push(el('div', { className: 'hl' }, [el('i', { style: `background:${hlM.color}` }), `${hlM.name}: ${fmtV(hlM.main[i], v.unit)}`]));
+                out.push(
+                    tipRow('Media', fmtV(st.mean[i], v.unit)),
+                    tipRow('Mediana', fmtV(st.median[i], v.unit)),
+                    tipRow('Min … max', `${fmtV(st.min[i])} … ${fmtV(st.max[i])}`),
+                    tipRow('10–90%', `${fmtV(st.p10[i])} … ${fmtV(st.p90[i])}`),
+                    tipRow('Dispersione', fmtV(st.p90[i] - st.p10[i], v.unit))
+                );
+                if (ctrl && ctrl.main) out.push(tipRow('Controllo', fmtV(ctrl.main[i], v.unit)));
+                if (th.on) out.push(tipSep(), tipRow(`Prob. ${thLabel(th, v)}`, pct(probOf(s.members.map(m => m.main && m.main[i]), th)), 'th'));
+                if (v.kind === 'combo' && s.blocks && state.layers.precip) {
+                    const j = blockIndex(s, hoverT);
+                    if (j != null) {
+                        const b = s.blocks[j], a = s.accStats;
+                        out.push(tipSep(),
+                            tipRow(`Pioggia ${hh(b.start)}–${hh(b.end)}`, fmtV(a.mean[j], 'mm'), 'rain'),
+                            tipRow('Max scenario', fmtV(a.max[j], 'mm'), 'rain'),
+                            tipRow('Prob. ≥ 1 mm', pct(probOf(s.members.map(m => m.acc && m.acc[j]), { dir: 'ge', val: 1 })), 'rain'));
+                        if (hlM && hlM.acc) out.push(tipRow(`${hlM.name}`, fmtV(hlM.acc[j], 'mm'), 'rain'));
+                    }
+                }
+            } else {
+                const j = blockIndex(s, hoverT);
+                if (j == null) return null;
+                const b = s.blocks[j], st = s.accStats, u = v.unit;
+                out.push(el('div', { className: 't', textContent: `${fmtDayLong.format(b.start)}, ore ${hh(b.start)}–${hh(b.end)}` }));
+                if (hlM && hlM.acc) out.push(el('div', { className: 'hl' }, [el('i', { style: `background:${hlM.color}` }), `${hlM.name}: ${fmtV(hlM.acc[j], u)}`]));
+                out.push(
+                    tipRow('Media', fmtV(st.mean[j], u)),
+                    tipRow('Mediana', fmtV(st.median[j], u)),
+                    tipRow('10–90%', `${fmtV(st.p10[j])} … ${fmtV(st.p90[j])}`),
+                    tipRow('Max scenario', fmtV(st.max[j], u))
+                );
+                if (ctrl && ctrl.acc) out.push(tipRow('Controllo', fmtV(ctrl.acc[j], u)));
+                out.push(tipSep(), tipRow(`Prob. ${thLabel(th, v)}`, pct(probOf(s.members.map(m => m.acc && m.acc[j]), th)), 'th'));
+            }
+            return out;
+        }
+
+        function compareTip(cs) {
+            const rows = cs.rows || [];
+            if (!rows.length) return null;
+            const out = [el('div', { className: 't', textContent: fmtFull.format(Math.round(hoverT / HOUR) * HOUR) })];
+            rows.forEach(r => {
+                if (cmpOff.has(r.key)) return;
+                let val = null;
+                if (r.blocks) { const j = blockIndex(r.s, hoverT); if (j != null) val = r.y[j]; }
+                else if (hoverT <= r.s.xMax) val = r.y[hourIndex(r.s, hoverT)];
+                out.push(tipRow(r.name, r.unit === '%' ? pct(val) : fmtV(val, r.unit), '', r.color));
+            });
+            return out;
+        }
+
+        // ---------- Grafico di un modello ----------
+        function modelDatasets(s, off) {
+            const v = s.variable, L = state.layers, th = getTh(v);
+            const ds = [];
+            const n = s.lastIdx + 1;
+            const pts = arr => { const out = new Array(n); for (let i = 0; i < n; i++) out[i] = { x: s.times[i], y: arr[i] == null ? null : arr[i] }; return out; };
+            const bpts = arr => s.blocks.map((b, j) => ({ x: b.mid, y: arr[j] }));
+            const ctrl = s.members.find(m => m.num === 0);
+            const perturbed = s.members.filter(m => m.num > 0);
+            const memberHidden = m => !L.members || off.has(m.name);
+
+            if (v.kind !== 'accum') {
+                const st = s.mainStats;
+                if (L.band90) ds.push(bandLow(pts(st.p10)), bandHigh(pts(st.p90), 'rgba(255,255,255,0.13)'));
+                if (L.band50) ds.push(bandLow(pts(st.p25)), bandHigh(pts(st.p75), 'rgba(255,255,255,0.22)'));
+                if (v.kind === 'combo' && L.precip && s.blocks) {
+                    perturbed.forEach(m => { if (m.acc) ds.push(line(bpts(m.acc), m.color, 1, { yAxisID: 'y2', _kind: 'member', _m: m.name, hidden: memberHidden(m), order: 7 })); });
+                    if (L.mean) ds.push(line(bpts(s.accStats.mean), '#fff', 1.5, { yAxisID: 'y2', _kind: 'pmean', order: 3 }));
+                }
+                perturbed.forEach(m => { if (m.main) ds.push(line(pts(m.main), m.color, 1, { _kind: 'member', _m: m.name, hidden: memberHidden(m), order: 6 })); });
+                if (ctrl && ctrl.main && L.control) ds.push(line(pts(ctrl.main), CTRL_COLOR, 2, { _kind: 'control', order: 2 }));
+                if (L.median) ds.push(line(pts(st.median), '#fff', 1.5, { _kind: 'median', borderDash: [6, 4], order: 2 }));
+                if (L.mean) ds.push(line(pts(st.mean), '#fff', 2.6, { _kind: 'mean', order: 1 }));
+            } else {
+                const st = s.accStats;
+                if (L.band90) ds.push(bandLow(bpts(st.p10)), bandHigh(bpts(st.p90), 'rgba(255,255,255,0.13)'));
+                if (L.band50) ds.push(bandLow(bpts(st.p25)), bandHigh(bpts(st.p75), 'rgba(255,255,255,0.22)'));
+                perturbed.forEach(m => { if (m.acc) ds.push(line(bpts(m.acc), m.color, 1, { _kind: 'member', _m: m.name, hidden: memberHidden(m), order: 6 })); });
+                if (ctrl && ctrl.acc && L.control) ds.push(line(bpts(ctrl.acc), CTRL_COLOR, 2, { _kind: 'control', order: 2 }));
+                if (L.median) ds.push(line(bpts(st.median), '#fff', 1.5, { _kind: 'median', borderDash: [6, 4], order: 2 }));
+                if (L.mean) ds.push(line(bpts(st.mean), '#fff', 2.6, { _kind: 'mean', order: 1 }));
+                ds.push(line(bpts(probSeries(s, th)), '#ffd23f', 1.6, { yAxisID: 'yp', _kind: 'prob', stepped: 'middle', _noFit: true, order: 0 }));
+            }
+            return ds;
+        }
+
+        function modelTitle(e) {
+            const loc = currentLocation(), v = e.series.variable;
+            return `${loc.name} · ${v.title}` + (e.run ? `  |  corsa ${fmtRun(e.run)}` : '');
+        }
+
+        function drawEntry(e) {
+            destroyCS(e.cs);
+            const s = e.series, v = s.variable, th = getTh(v);
+            const cs = makeCS(e.plotEl, { series: s, entry: e, off: e.off });
+            e.cs = cs;
+            cs.thLine = th.on ? th.val : null;
+            cs.thText = `soglia ${thLabel(th, v)}`;
+            cs.fit = v.kind === 'accum' ? { floor: 0 }
+                   : v.max != null ? { fixed: { min: v.min || 0, max: v.max } }
+                   : { floor: v.min != null ? v.min : null };
+            cs.footL = `${e.model.name} Ensemble, ${fmtCoord(s.lat, 'N', 'S')}, ${fmtCoord(s.lon, 'E', 'W')}` + (s.elev != null ? `, ${Math.round(s.elev)} m` : '');
+            cs.footR = 'open-meteo.com';
+
+            const scales = {
+                x: xAxis(),
+                y: axis({ position: 'left', title: v.kind === 'accum' ? `${v.unit} / 6 h` : v.unit })
+            };
+            if (v.kind === 'combo' && state.layers.precip && s.blocks) scales.y2 = axis({ position: 'right', title: 'mm / 6 h', grid: false });
+            if (v.kind === 'accum') scales.yp = axis({ position: 'right', min: 0, max: 100, title: `prob. ${thLabel(th, v)} (%)`, grid: false });
+
+            cs.chart = new Chart(cs.canvas, chartConfig(cs, modelDatasets(s, e.off), scales, modelTitle(e)));
+            sizeOverlay(cs, cs.chart.width, cs.chart.height);
+            e.plotEl.classList.remove('na', 'error');
+            e.plotEl.classList.add('loaded');
+            buildLegend(e);
+            applyView(cs);
+            if (e.dailyEl.open) buildDaily(e);
+            e.actions.forEach(b => b.disabled = false);
+        }
+
+        // ---------- Legenda in stile Wetterzentrale ----------
+        function setLegendHL(cs, name) {
+            cs.legendHL = name;
+            cs.highlight = name;
+            scheduleOverlays();
+        }
+
+        // Evidenzia passando sopra la legenda (solo con il mouse: sul touch resterebbe attivo)
+        function hoverHL(item, cs, name) {
+            item.addEventListener('pointerenter', ev => { if (ev.pointerType === 'mouse') setLegendHL(cs, name); });
+            item.addEventListener('pointerleave', ev => { if (ev.pointerType === 'mouse') setLegendHL(cs, null); });
+        }
+
+        function refreshMemberVisibility(e) {
+            const cs = e.cs;
+            cs.chart.data.datasets.forEach(d => { if (d._kind === 'member') d.hidden = !state.layers.members || e.off.has(d._m); });
+            applyView(cs);
+            e.legendEl.querySelectorAll('.mem .it').forEach(it => it.classList.toggle('off', e.off.has(it.dataset.m)));
+        }
+
+        function buildLegend(e) {
+            const box = e.legendEl, s = e.series, v = s.variable, cs = e.cs;
+            const perturbed = s.members.filter(m => m.num > 0);
+            box.innerHTML = '';
+            const toggle = el('button', { className: 'ltoggle', textContent: `Legenda · ${perturbed.length} scenari ▾` });
+            toggle.addEventListener('click', () => box.classList.toggle('collapsed'));
+
+            const all = el('button', { textContent: 'Tutti', title: 'Mostra tutti gli scenari' });
+            const none = el('button', { textContent: 'Nessuno', title: 'Nascondi tutti gli scenari' });
+            all.addEventListener('click', () => { e.off.clear(); refreshMemberVisibility(e); });
+            none.addEventListener('click', () => { perturbed.forEach(m => e.off.add(m.name)); refreshMemberVisibility(e); });
+
+            const mem = el('div', { className: 'mem' });
+            perturbed.forEach(m => {
+                const it = el('div', { className: 'it' + (e.off.has(m.name) ? ' off' : ''), title: 'Clic: mostra/nascondi · passa sopra: evidenzia' },
+                    [el('i', { style: `background:${m.color}` }), m.name]);
+                it.dataset.m = m.name;
+                it.addEventListener('click', () => {
+                    if (e.off.has(m.name)) e.off.delete(m.name); else e.off.add(m.name);
+                    refreshMemberVisibility(e);
+                });
+                hoverHL(it, cs, m.name);
+                mem.append(it);
+            });
+
+            const extra = el('div', { className: 'extra' });
+            const layerItem = (key, label, swatch) => {
+                const it = el('div', { className: 'it' + (state.layers[key] ? '' : ' off'), title: 'Clic: mostra/nascondi su tutti i grafici' },
+                    [el('i', { style: `background:${swatch}` }), label]);
+                it.addEventListener('click', () => setLayer(key, !state.layers[key]));
+                if (key === 'control') hoverHL(it, cs, 'Controllo');
+                extra.append(it);
+            };
+            layerItem('mean', 'Media ens.', '#fff');
+            layerItem('median', 'Mediana', 'repeating-linear-gradient(90deg,#fff 0 4px,transparent 4px 7px)');
+            if (s.members.some(m => m.num === 0)) layerItem('control', 'Controllo', CTRL_COLOR);
+            if (v.kind === 'combo') layerItem('precip', 'Pioggia 6 h', RAIN_COLOR);
+            if (v.kind === 'accum') {
+                extra.append(el('div', { className: 'it static' }, [el('i', { style: 'background:#ffd23f' }), `Prob. ${thLabel(getTh(v), v)}`]));
+            }
+            if (getTh(v).on) extra.append(el('div', { className: 'it static' }, [el('i', { style: 'background:repeating-linear-gradient(90deg,#ffd23f 0 5px,transparent 5px 8px)' }), 'Soglia']));
+
+            box.append(toggle, el('div', { className: 'lbody' }, [el('div', { className: 'lbtns' }, [all, none]), mem, extra]));
+            if (e.legendCollapsed == null) e.legendCollapsed = isMobile();
+            box.classList.toggle('collapsed', e.legendCollapsed);
+            toggle.addEventListener('click', () => { e.legendCollapsed = box.classList.contains('collapsed'); });
+        }
+
+        // ---------- Grafico di confronto tra modelli ----------
+        function drawCompare() {
+            const ce = compareEntry;
+            if (!ce) return;
+            destroyCS(ce.cs);
+            ce.cs = null;
+            const ready = entries.filter(e => e.series);
+            const pending = entries.some(e => !e.series && !e.na && !e.failed);
+            ce.plotEl.classList.remove('loaded', 'na');
+            if (!ready.length) {
+                ce.status.textContent = pending ? 'In attesa dei dati…' : 'Nessun dato disponibile per il confronto.';
+                if (!pending) ce.plotEl.classList.add('na');
+                ce.legendEl.innerHTML = '';
+                return;
+            }
+            const v = currentVariable(), th = getTh(v), mode = state.compareMode;
+            const accum = v.kind === 'accum';
+            const unit = mode === 'prob' ? '%' : (accum ? `${v.unit}` : v.unit);
+            const datasets = [], rows = [];
+
+            ready.forEach(e => {
+                const s = e.series, col = e.model.color, key = e.model.key;
+                const st = accum ? s.accStats : s.mainStats;
+                const xsArr = accum ? s.blocks.map(b => b.mid) : s.times.slice(0, s.lastIdx + 1);
+                let y;
+                if (mode === 'mean') y = st.mean;
+                else if (mode === 'spread') y = st.p90.map((p, k) => p == null || st.p10[k] == null ? null : p - st.p10[k]);
+                else y = probSeries(s, th);
+                const pts = arr => xsArr.map((x, k) => ({ x, y: arr[k] == null ? null : arr[k] }));
+                const hidden = cmpOff.has(key);
+                if (mode === 'mean' && state.layers.band90) {
+                    datasets.push(Object.assign(bandLow(pts(st.p10)), { _model: key, hidden }),
+                                  Object.assign(bandHigh(pts(st.p90), col + '26'), { _model: key, hidden }));
+                }
+                datasets.push(line(pts(y), col, 2.4, { _model: key, hidden, order: 1, stepped: mode === 'prob' && accum ? 'middle' : false }));
+                rows.push({ key, name: e.model.name, color: col, s, y, blocks: accum, unit: mode === 'prob' ? '%' : (accum ? v.unit : v.unit) });
+            });
+
+            const cs = makeCS(ce.plotEl, { series: null, off: new Set(), rows });
+            ce.cs = cs;
+            cs.thLine = th.on && mode === 'mean' ? th.val : null;
+            cs.thText = `soglia ${thLabel(th, v)}`;
+            cs.fit = mode === 'prob' ? { fixed: { min: 0, max: 100 } }
+                   : mode === 'spread' ? { floor: 0 }
+                   : accum ? { floor: 0 }
+                   : v.max != null ? { fixed: { min: v.min || 0, max: v.max } }
+                   : { floor: v.min != null ? v.min : null };
+            cs.footL = `${currentLocation().name} · ${ready.length} modelli`;
+            cs.footR = 'open-meteo.com';
+
+            const modeLabel = mode === 'mean' ? 'media degli scenari'
+                            : mode === 'spread' ? 'dispersione (90° − 10° percentile)'
+                            : `probabilità ${thLabel(th, v)}`;
+            const yTitle = mode === 'prob' ? '%' : (accum ? `${v.unit} / 6 h` : unit);
+            const scales = { x: xAxis(), y: axis({ position: 'left', title: yTitle }) };
+            cs.chart = new Chart(cs.canvas, chartConfig(cs, datasets, scales, `Confronto modelli · ${v.title} · ${modeLabel}`));
+            sizeOverlay(cs, cs.chart.width, cs.chart.height);
+            ce.plotEl.classList.add('loaded');
+            applyView(cs);
+
+            ce.legendEl.innerHTML = '';
+            ready.forEach(e => {
+                const key = e.model.key;
+                const chip = el('button', { className: 'chip' + (cmpOff.has(key) ? ' off' : ''), title: 'Clic: mostra/nascondi' },
+                    [el('i', { style: `background:${e.model.color}` }), e.model.name]);
+                chip.addEventListener('click', () => {
+                    if (cmpOff.has(key)) cmpOff.delete(key); else cmpOff.add(key);
+                    chip.classList.toggle('off', cmpOff.has(key));
+                    cs.chart.data.datasets.forEach(d => { if (d._model === key) d.hidden = cmpOff.has(key); });
+                    applyView(cs);
+                });
+                ce.legendEl.append(chip);
+            });
+            ce.actions.forEach(b => b.disabled = false);
+        }
+
+        // ---------- Analisi giornaliera ----------
+        function buildDaily(e) {
+            const wrap = e.dailyEl.querySelector('.daily-wrap');
+            wrap.innerHTML = '';
+            const s = e.series;
+            if (!s) { wrap.textContent = 'Dati non disponibili.'; return; }
+            const v = s.variable, th = getTh(v);
+            const dayOf = t => Math.floor(t / DAY) * DAY;
+
+            // Raggruppa gli indici orari per giorno (per gli accumuli si usa l'inizio dell'ora accumulata)
+            const groups = (shift) => {
+                const map = new Map();
+                for (let i = 0; i <= s.lastIdx; i++) {
+                    const d = dayOf(s.times[i] - shift);
+                    if (!map.has(d)) map.set(d, []);
+                    map.get(d).push(i);
+                }
+                return [...map.entries()].filter(([, idx]) => idx.length >= 20);
+            };
+            const median = vals => { const a = vals.filter(x => x != null).sort((x, y) => x - y); return a.length ? quantile(a, 0.5) : null; };
+            const cellP = (p, rgb) => {
+                const td = el('td', { textContent: pct(p) });
+                if (p != null) td.style.background = `rgba(${rgb}, ${(p / 100 * 0.55).toFixed(2)})`;
+                return td;
+            };
+            const rainDaily = (d) => {
+                const idx = [];
+                for (let i = 0; i <= s.lastIdx; i++) if (dayOf(s.times[i] - HOUR) === d) idx.push(i);
+                if (idx.length < 20) return null;
+                return s.members.filter(m => m.hourlyAcc).map(m => sumRange(m.hourlyAcc, idx[0], idx[idx.length - 1]));
+            };
+
+            const head = [], rows = [];
+            if (v.kind !== 'accum') {
+                head.push('Giorno', `Min (${v.unit})`, `Max (${v.unit})`, 'Estremi scenari');
+                if (th.on) head.push(`Prob. ${thLabel(th, v)}`);
+                if (v.kind === 'combo') head.push('Pioggia media', 'Prob. ≥ 1 mm');
+                groups(0).forEach(([d, idx]) => {
+                    const mins = [], maxs = [];
+                    let hits = 0, tot = 0;
+                    s.members.forEach(m => {
+                        if (!m.main) return;
+                        const vals = idx.map(i => m.main[i]).filter(x => x != null);
+                        if (!vals.length) return;
+                        mins.push(Math.min(...vals));
+                        maxs.push(Math.max(...vals));
+                        tot++;
+                        if (vals.some(x => meets(x, th))) hits++;
+                    });
+                    if (!tot) return;
+                    const tr = el('tr', {}, [
+                        el('td', { textContent: fmtDayLong.format(d) }),
+                        el('td', { textContent: fmtV(median(mins)) }),
+                        el('td', { textContent: fmtV(median(maxs)) }),
+                        el('td', { textContent: `${fmtV(Math.min(...mins))} … ${fmtV(Math.max(...maxs))}` })
+                    ]);
+                    if (th.on) tr.append(cellP(100 * hits / tot, '255, 210, 63'));
+                    if (v.kind === 'combo') {
+                        const sums = rainDaily(d);
+                        if (sums) {
+                            const valid = sums.filter(x => x != null);
+                            tr.append(el('td', { textContent: fmtV(valid.reduce((a, b) => a + b, 0) / valid.length, 'mm') }),
+                                      cellP(probOf(sums, { dir: 'ge', val: 1 }), '80, 170, 255'));
+                        } else tr.append(el('td', { textContent: '—' }), el('td', { textContent: '—' }));
+                    }
+                    rows.push(tr);
+                });
+            } else {
+                const u = v.unit;
+                head.push('Giorno', `Media (${u})`, '10–90%', 'Max scenario', `Prob. ≥ 1 ${u}/giorno`);
+                if (th.on) head.push(`Prob. ${thLabel(th, v)}`);
+                groups(HOUR).forEach(([d, idx]) => {
+                    const sums = s.members.filter(m => m.hourlyAcc).map(m => sumRange(m.hourlyAcc, idx[0], idx[idx.length - 1]));
+                    const valid = sums.filter(x => x != null).sort((a, b) => a - b);
+                    if (valid.length < 2) return;
+                    const tr = el('tr', {}, [
+                        el('td', { textContent: fmtDayLong.format(d) }),
+                        el('td', { textContent: fmtV(valid.reduce((a, b) => a + b, 0) / valid.length) }),
+                        el('td', { textContent: `${fmtV(quantile(valid, 0.1))} … ${fmtV(quantile(valid, 0.9))}` }),
+                        el('td', { textContent: fmtV(valid[valid.length - 1]) }),
+                        cellP(probOf(sums, { dir: 'ge', val: 1 }), '80, 170, 255')
+                    ]);
+                    if (th.on) {
+                        const js = s.blocks.map((b, j) => j).filter(j => dayOf(s.blocks[j].start) === d);
+                        const withAcc = s.members.filter(m => m.acc);
+                        const hits = withAcc.filter(m => js.some(j => m.acc[j] != null && meets(m.acc[j], th))).length;
+                        tr.append(cellP(js.length ? 100 * hits / withAcc.length : null, '255, 210, 63'));
+                    }
+                    rows.push(tr);
+                });
+            }
+
+            if (!rows.length) { wrap.textContent = 'Nessun giorno completo da analizzare.'; return; }
+            wrap.append(
+                el('table', { className: 'daily-t' }, [
+                    el('thead', {}, [el('tr', {}, head.map(h => el('th', { textContent: h })))]),
+                    el('tbody', {}, rows)
+                ]),
+                el('div', { className: 'daily-note', textContent: v.kind !== 'accum'
+                    ? 'Min e Max: mediana tra gli scenari dei valori minimi e massimi del giorno. Estremi: lo scenario più basso e quello più alto. ' +
+                      'Probabilità: percentuale di scenari in cui la condizione si verifica almeno una volta nel giorno.'
+                    : 'Totali giornalieri da mezzanotte a mezzanotte (ora locale). Probabilità: percentuale di scenari.' })
+            );
+        }
+
+        // ---------- Esportazione e schermo intero ----------
+        function exportPNG(cs, name) {
+            if (!cs || !cs.chart) return;
+            download(cs.chart.toBase64Image('image/png', 1), name + '.png');
+        }
+
+        function exportCSV(e) {
+            const s = e.series;
+            if (!s) return;
+            const v = s.variable;
+            const num = x => x == null ? '' : String(Math.round(x * 100) / 100).replace('.', ',');
+            const lines = [];
+            if (v.kind !== 'accum') {
+                const ms = s.members.filter(m => m.main), st = s.mainStats;
+                const head = ['ora', ...ms.map(m => m.name), 'media', 'mediana', 'p10', 'p90'];
+                if (v.kind === 'combo') head.push('pioggia_media_1h');
+                lines.push(head.join(';'));
+                for (let i = 0; i <= s.lastIdx; i++) {
+                    const row = [s.labels[i], ...ms.map(m => num(m.main[i])), num(st.mean[i]), num(st.median[i]), num(st.p10[i]), num(st.p90[i])];
+                    if (v.kind === 'combo') {
+                        const vals = s.members.filter(m => m.hourlyAcc).map(m => m.hourlyAcc[i]).filter(x => x != null);
+                        row.push(num(vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : null));
+                    }
+                    lines.push(row.join(';'));
+                }
+            } else {
+                const ms = s.members.filter(m => m.hourlyAcc);
+                lines.push(['ora', ...ms.map(m => m.name), 'media'].join(';'));
+                for (let i = 0; i <= s.lastIdx; i++) {
+                    const vals = ms.map(m => m.hourlyAcc[i]);
+                    const valid = vals.filter(x => x != null);
+                    lines.push([s.labels[i], ...vals.map(num), num(valid.length ? valid.reduce((a, b) => a + b, 0) / valid.length : null)].join(';'));
+                }
+            }
+            const blob = new Blob(['﻿' + lines.join('\r\n')], { type: 'text/csv;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            download(url, fileBase(e.model.key) + '.csv');
+            setTimeout(() => URL.revokeObjectURL(url), 5000);
+        }
+
+        const fileBase = key => safeName(`${currentLocation().name}_${key}_${state.variable}_${new Date().toISOString().slice(0, 10)}`);
+
+        function toggleFull(card) {
+            card.classList.toggle('full');
+            document.body.classList.toggle('noscroll', !!document.querySelector('.chart-card.full'));
         }
 
         // ================= Rendering =================
@@ -863,6 +1885,7 @@
                 b.disabled = b.dataset.source === 'wz' ? !loc.geoid : !hasCoords(loc);
             });
             $('varGroup').style.display = src === 'om' ? '' : 'none';
+            $('anaBar').hidden = src !== 'om';
 
             const sel = $('varSelect');
             if (!sel.options.length) {
@@ -888,6 +1911,20 @@
             document.querySelectorAll('.layout-seg button').forEach(b => {
                 b.classList.toggle('on', Number(b.dataset.cols) === state.cols);
             });
+            syncAnalysisBar();
+        }
+
+        function syncAnalysisBar() {
+            const v = currentVariable(), th = getTh(v);
+            $('thOn').checked = th.on;
+            $('thDir').value = th.dir;
+            if (document.activeElement !== $('thVal')) $('thVal').value = String(th.val).replace('.', ',');
+            $('thUnit').textContent = thUnit(v);
+            $('cmpBtn').classList.toggle('on', state.compare);
+            $('zoomReset').hidden = !customView;
+            document.querySelectorAll('#rangeSeg button').forEach(b =>
+                b.classList.toggle('on', !customView && Number(b.dataset.range) === state.range));
+            $('layersPop').querySelectorAll('input').forEach(i => { i.checked = !!state.layers[i.name]; });
         }
 
         function cardShell(m, extraActions = []) {
@@ -898,12 +1935,14 @@
                 infoBox.classList.toggle('open');
                 infoBtn.classList.toggle('on');
             });
+            const facts = el('div', { className: 'facts', textContent: m.facts });
             const title = el('div', {}, [
                 el('h3', { textContent: m.name }, [el('span', { className: 'tag', textContent: m.desc })]),
-                el('div', { className: 'facts', textContent: m.facts })
+                facts
             ]);
             const head = el('div', { className: 'chart-head' }, [title, el('div', { className: 'head-actions' }, [...extraActions, infoBtn])]);
             const card = el('div', { className: 'chart-card' }, [head, infoBox]);
+            card.facts = facts;
             return card;
         }
 
@@ -912,7 +1951,22 @@
             return { box: el('div', { className: 'status' }, [el('div', { className: 'spinner' }), label]), label };
         }
 
+        function actionBtn(text, title, fn) {
+            const b = el('button', { className: 'act', textContent: text, title, disabled: true });
+            b.addEventListener('click', fn);
+            return b;
+        }
+
         let renderToken = 0;
+
+        function destroyCharts() {
+            [...allCS].forEach(destroyCS);
+            entries = [];
+            compareEntry = null;
+            hoverT = null;
+            glob = { t0: NaN, tmax: NaN };
+            document.body.classList.remove('noscroll');
+        }
 
         function renderCharts() {
             destroyCharts();
@@ -950,47 +2004,127 @@
                 now.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' }));
         }
 
+        function wzPanel(withLegend) {
+            const { box, label } = statusBox('Caricamento…');
+            const tip = el('div', { className: 'wz-tip' });
+            const plotEl = el('div', { className: 'wz-plot' }, [tip, box]);
+            const legendEl = el('div', { className: 'wz-legend' });
+            const panel = el('div', { className: 'wz-panel' }, withLegend ? [legendEl, plotEl] : [plotEl]);
+            return { panel, plotEl, legendEl, status: label };
+        }
+
+        function makeCompareCard() {
+            const ce = {};
+            const seg = el('div', { className: 'seg', role: 'group' });
+            COMPARE_MODES.forEach(mo => {
+                const b = el('button', { textContent: mo.label, className: state.compareMode === mo.key ? 'on' : '' });
+                b.addEventListener('click', () => {
+                    state.compareMode = mo.key;
+                    saveState();
+                    seg.querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b));
+                    drawCompare();
+                });
+                seg.append(b);
+            });
+            const png = actionBtn('PNG', 'Scarica l\'immagine', () => exportPNG(ce.cs, fileBase('confronto')));
+            const full = actionBtn('⛶', 'Schermo intero', () => toggleFull(ce.card));
+            full.disabled = false;
+            ce.actions = [png];
+            const head = el('div', { className: 'chart-head' }, [
+                el('div', {}, [
+                    el('h3', { textContent: 'Confronto modelli' }, [el('span', { className: 'tag', textContent: 'tutti i modelli su un grafico' })]),
+                    el('div', { className: 'facts', textContent: 'Clic sui nomi in basso per nascondere un modello' })
+                ]),
+                el('div', { className: 'head-actions' }, [seg, png, full])
+            ]);
+            const p = wzPanel(false);
+            const legendEl = el('div', { className: 'cmp-legend' });
+            ce.card = el('div', { className: 'chart-card compare' }, [head, p.panel, legendEl]);
+            ce.plotEl = p.plotEl;
+            ce.status = p.status;
+            ce.legendEl = legendEl;
+            return ce;
+        }
+
+        function makeModelCard(m) {
+            const e = { model: m, off: new Set(), cs: null, series: null };
+            const png = actionBtn('PNG', 'Scarica l\'immagine del grafico', () => exportPNG(e.cs, fileBase(m.key)));
+            const csv = actionBtn('CSV', 'Scarica i dati (Excel)', () => exportCSV(e));
+            const full = actionBtn('⛶', 'Schermo intero', () => toggleFull(e.card));
+            full.disabled = false;
+            e.actions = [png, csv];
+            e.card = cardShell(m, [png, csv, full]);
+            const p = wzPanel(true);
+            e.plotEl = p.plotEl;
+            e.legendEl = p.legendEl;
+            e.status = p.status;
+            e.dailyEl = el('details', { className: 'daily' }, [
+                el('summary', { textContent: '📊 Analisi giornaliera' }),
+                el('div', { className: 'daily-wrap' })
+            ]);
+            e.dailyEl.addEventListener('toggle', () => { if (e.dailyEl.open) buildDaily(e); });
+            e.card.append(p.panel, e.dailyEl);
+            return e;
+        }
+
+        function setEntryStatus(e, cls, text) {
+            e.plotEl.classList.add(cls);
+            e.status.textContent = text;
+            e.dailyEl.hidden = true;
+        }
+
         function renderOpenMeteo(loc, visible, token) {
             const variable = currentVariable();
+            if (state.compare) {
+                compareEntry = makeCompareCard();
+                $('grid').append(compareEntry.card);
+            }
             visible.forEach(m => {
-                const card = cardShell(m);
-                const { box, label } = statusBox('Caricamento…');
-                const canvas = el('canvas');
-                const body = el('div', { className: 'chart-body canvas' }, [canvas, box]);
-                const legendBox = el('div', { className: 'legend' });
-                card.append(body, legendBox);
-                $('grid').append(card);
+                const e = makeModelCard(m);
+                entries.push(e);
+                $('grid').append(e.card);
 
                 if (typeof Chart === 'undefined') {
-                    body.classList.add('error');
-                    label.textContent = 'Impossibile caricare la libreria dei grafici. Controlla la connessione.';
+                    e.failed = true;
+                    setEntryStatus(e, 'error', 'Impossibile caricare la libreria dei grafici. Controlla la connessione.');
                     return;
                 }
                 if ((m.unavailable || []).includes(variable.key)) {
-                    body.classList.add('na');
-                    label.textContent = `«${variable.label}» non è disponibile per ${m.name}.`;
+                    e.na = true;
+                    setEntryStatus(e, 'na', `«${variable.label}» non è disponibile per ${m.name}.`);
                     return;
                 }
 
                 fetchEnsemble(m, loc, variable.om).then(data => {
                     if (token !== renderToken) return;
-                    const res = buildChart(canvas, data, variable, m.om);
-                    if (!res) {
-                        body.classList.add('na');
-                        label.textContent = `Nessun dato di «${variable.label}» per ${m.name}.`;
-                        return;
+                    const s = processSeries(data, variable, m);
+                    if (!s) {
+                        e.na = true;
+                        setEntryStatus(e, 'na', `Nessun dato di «${variable.label}» per ${m.name}.`);
+                    } else {
+                        e.series = s;
+                        drawEntry(e);
+                        updateGlobals();
                     }
-                    charts.push(res.chart);
-                    body.classList.add('loaded');
-                    res.legend.forEach(([text, color]) => {
-                        legendBox.append(el('span', {}, [el('i', { style: `background:${color}` }), text]));
-                    });
+                    drawCompare();
                 }).catch(err => {
                     if (token !== renderToken) return;
-                    body.classList.add('error');
-                    label.textContent = 'Errore nel caricamento dei dati: ' + err.message;
+                    e.failed = true;
+                    setEntryStatus(e, 'error', 'Errore nel caricamento dei dati: ' + err.message);
+                    drawCompare();
+                });
+
+                fetchRun(m).then(d => {
+                    if (token !== renderToken || !d) return;
+                    e.run = d;
+                    e.card.facts.textContent = `${m.facts} · corsa ${fmtRun(d)}`;
+                    if (e.cs && e.cs.chart) {
+                        e.cs.chart.options.plugins.title.text = modelTitle(e);
+                        e.cs.chart.update('none');
+                    }
                 });
             });
+            drawCompare();
         }
 
         function renderWetterzentrale(loc, visible) {
@@ -1029,6 +2163,12 @@
             renderCharts();
         }
 
+        // Ridisegna i grafici dai dati già scaricati (livelli, soglia…)
+        function redrawFromCache() {
+            entries.forEach(e => { if (e.series) drawEntry(e); });
+            drawCompare();
+        }
+
         // ================= Lightbox =================
         function openLightbox(src, alt) {
             const lb = $('lightbox');
@@ -1039,7 +2179,11 @@
         }
         $('lightbox').addEventListener('click', () => $('lightbox').classList.remove('open'));
         document.addEventListener('keydown', e => {
-            if (e.key === 'Escape') $('lightbox').classList.remove('open');
+            if (e.key !== 'Escape') return;
+            $('lightbox').classList.remove('open');
+            $('layersPop').classList.remove('open');
+            const full = document.querySelector('.chart-card.full');
+            if (full) toggleFull(full);
         });
 
         // ================= Ricerca località =================
@@ -1190,9 +2334,63 @@
         document.querySelectorAll('dialog .close').forEach(b => b.addEventListener('click', () => b.closest('dialog').close()));
         document.querySelectorAll('dialog').forEach(d => d.addEventListener('click', e => { if (e.target === d) d.close(); }));
 
+        // ================= Barra di analisi =================
+        (function buildLayersPop() {
+            const pop = $('layersPop');
+            LAYERS.forEach(l => {
+                const input = el('input', { type: 'checkbox', name: l.key, checked: !!state.layers[l.key] });
+                input.addEventListener('change', () => setLayer(l.key, input.checked));
+                pop.append(el('label', {}, [input, el('i', { style: `background:${l.swatch}` }), l.label]));
+            });
+            $('layersBtn').addEventListener('click', e => { e.stopPropagation(); pop.classList.toggle('open'); });
+            pop.addEventListener('click', e => e.stopPropagation());
+            document.addEventListener('click', () => pop.classList.remove('open'));
+        })();
+
+        function setLayer(key, on) {
+            state.layers[key] = on;
+            saveState();
+            syncAnalysisBar();
+            redrawFromCache();
+        }
+
+        function setThreshold(patch) {
+            const v = currentVariable();
+            state.thresholds[v.key] = Object.assign(getTh(v), patch);
+            saveState();
+            syncAnalysisBar();
+            redrawFromCache();
+        }
+
+        $('thOn').addEventListener('change', e => setThreshold({ on: e.target.checked }));
+        $('thDir').addEventListener('change', e => setThreshold({ dir: e.target.value, on: true }));
+        let thTimer = null;
+        $('thVal').addEventListener('input', e => {
+            clearTimeout(thTimer);
+            const val = parseFloat(e.target.value.replace(',', '.'));
+            if (!isFinite(val)) return;
+            thTimer = setTimeout(() => setThreshold({ val, on: true }), 400);
+        });
+
+        document.querySelectorAll('#rangeSeg button').forEach(b => b.addEventListener('click', () => {
+            state.range = Number(b.dataset.range);
+            customView = null;
+            saveState();
+            applyViewAll();
+        }));
+        $('zoomReset').addEventListener('click', () => { customView = null; applyViewAll(); });
+
+        $('cmpBtn').addEventListener('click', () => {
+            state.compare = !state.compare;
+            saveState();
+            syncAnalysisBar();
+            renderCharts();
+        });
+
         // ================= Eventi principali =================
         $('locSelect').addEventListener('change', e => {
             state.current = e.target.value;
+            customView = null;
             saveState();
             renderAll();
         });
@@ -1200,6 +2398,7 @@
         $('varSelect').addEventListener('change', e => {
             state.variable = e.target.value;
             saveState();
+            syncAnalysisBar();
             renderCharts();
         });
 
@@ -1214,19 +2413,15 @@
             state.cols = Number(b.dataset.cols);
             saveState();
             renderToolbar();
-            charts.forEach(c => c.resize());
         }));
 
         $('refreshBtn').addEventListener('click', () => {
             cache.clear();
+            metaCache.clear();
             renderCharts();
         });
 
         // ================= Avvio =================
-        if (typeof Chart !== 'undefined') {
-            Chart.defaults.color = COLORS.text;
-            Chart.defaults.font.family = "'Segoe UI', system-ui, -apple-system, Arial, sans-serif";
-        }
         renderAll();
     </script>
 </body>
