@@ -322,14 +322,45 @@
         .day-card .parts { padding-top: 10px; border-top: 1px solid var(--line); margin-top: auto; }
 
         /* ---------- Controlli dei meteogrammi ---------- */
-        .controls { padding: 6px 14px; }
+        .controls { padding: 10px 12px; }
+        .ctrl-main {
+            display: grid;
+            grid-template-columns: auto minmax(0, 1fr) auto auto;
+            grid-template-areas: "src var cmp set";
+            align-items: center;
+            gap: 8px 10px;
+        }
+        #sourceSeg { grid-area: src; }
+        #varGroup { grid-area: var; min-width: 0; }
+        #cmpBtn { grid-area: cmp; padding-top: 7px; padding-bottom: 7px; }
+        .set-btn {
+            grid-area: set;
+            display: inline-flex; align-items: center; gap: 7px;
+            padding: 7px 12px;
+            border-radius: 10px;
+            font-size: 13px; font-weight: 600;
+            min-width: 0;
+        }
+        .set-btn .set-sum { max-width: 240px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--accent); }
+        .set-btn .set-sum:empty { display: none; }
+        .set-btn .set-dot { display: none; width: 7px; height: 7px; border-radius: 50%; background: var(--accent); }
+        .set-btn .chev { width: 16px; height: 16px; transition: transform 0.2s; color: var(--muted); }
+        .set-btn[aria-expanded="true"] { border-color: var(--accent); }
+        .set-btn[aria-expanded="true"] .chev { transform: rotate(180deg); }
+        .set-panel { margin-top: 10px; border-top: 1px solid var(--line); }
+        details.notice { padding: 0; }
+        details.notice summary { cursor: pointer; padding: 9px 14px; list-style: none; }
+        details.notice summary::-webkit-details-marker { display: none; }
+        details.notice summary::before { content: 'ⓘ '; color: var(--accent); }
+        details.notice[open] summary { color: var(--text); }
+        details.notice p { margin: 0; padding: 0 14px 11px; }
         .ctrl-row { display: flex; align-items: center; gap: 10px; padding: 9px 0; border-bottom: 1px solid var(--line); min-width: 0; }
         .ctrl-row:last-child { border-bottom: 0; }
         .ctrl-row > .lbl { width: 76px; flex-shrink: 0; font-size: 12px; font-weight: 600; color: var(--muted); }
         .ctrl-row > .val { flex: 1; min-width: 0; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
         .ctrl-row > .val.scroll { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; margin-right: -14px; padding-right: 14px; }
         .ctrl-row > .val.scroll::-webkit-scrollbar { display: none; }
-        #varSelect { flex: 1; max-width: 420px; min-width: 0; }
+        #varSelect { width: 100%; max-width: 460px; min-width: 0; }
         #anaBar { display: contents; }
 
         .chip {
@@ -696,11 +727,19 @@
             .now-bottom { grid-template-columns: 1fr 1.1fr; gap: 12px; }
             .day-card { flex-basis: 220px; }
 
-            .controls { padding: 4px 12px; }
+            .controls { padding: 10px 12px; }
+            .ctrl-main { grid-template-columns: minmax(0, 1fr) auto auto; grid-template-areas: "var var set" "src cmp cmp"; }
+            .set-btn { width: 44px; height: 42px; padding: 0; justify-content: center; gap: 0; position: relative; }
+            .set-btn .set-label, .set-btn .set-sum, .set-btn .chev { display: none; }
+            .set-btn.custom .set-dot { display: block; position: absolute; top: 8px; right: 8px; }
+            .cmp-long { display: none; }
+            #sourceSeg button { padding: 7px 10px; font-size: 13px; }
+            #cmpBtn { justify-self: end; font-size: 13px; padding: 8px 12px; }
             .ctrl-row { flex-direction: column; align-items: stretch; gap: 7px; padding: 10px 0; }
             .ctrl-row > .lbl { width: auto; }
             .ctrl-row > .val.scroll { margin-right: -12px; padding-right: 12px; }
             #varSelect { max-width: none; height: 42px; }
+            .sec-title { margin-bottom: 8px; }
             .seg button { padding: 8px 13px; font-size: 14px; }
             .chip { padding: 8px 14px; font-size: 14px; }
             .th-input { width: 76px; height: 38px; }
@@ -714,8 +753,12 @@
             .popover label { font-size: 16px; padding: 10px 2px; }
 
             .grid { gap: 14px; }
-            .chart-head { padding: 12px; }
-            .head-actions .act { padding: 7px 11px; font-size: 13px; }
+            .chart-head { padding: 10px 12px; flex-wrap: nowrap; }
+            .chart-head > div:first-child { flex: 1; min-width: 0; }
+            .chart-card.compare .chart-head { flex-wrap: wrap; }
+            .head-actions { flex-wrap: nowrap; gap: 4px; }
+            .head-actions .act { padding: 6px 8px; font-size: 12px; }
+            .info-btn { width: 30px; height: 30px; }
 
             dialog {
                 width: 100%; max-width: 100%;
@@ -729,6 +772,10 @@
         @media (max-width: 480px) {
             .fc-label { display: none; }
             .fc-sum .hl { display: none; }
+        }
+        @media (max-width: 374px) {
+            #sourceSeg button { padding: 7px 7px; }
+            #cmpBtn { padding: 8px 9px; }
         }
         @media (max-width: 380px) {
             .now-bottom { grid-template-columns: 1fr; }
@@ -787,24 +834,27 @@
 
         <div class="sec-title">Meteogrammi ensemble</div>
         <section class="card controls">
-            <div class="ctrl-row">
-                <span class="lbl">Fonte</span>
-                <div class="val">
-                    <div class="seg" id="sourceSeg">
-                        <button data-source="om" title="Grafici interattivi da Open-Meteo, disponibili per qualunque località">Interattivi</button>
-                        <button data-source="wz" title="Immagini originali di Wetterzentrale.de">Wetterzentrale</button>
-                    </div>
+            <div class="ctrl-main">
+                <div class="seg" id="sourceSeg" role="group" aria-label="Fonte">
+                    <button data-source="om" title="Grafici interattivi da Open-Meteo, disponibili per qualunque località">Interattivi</button>
+                    <button data-source="wz" title="Immagini originali di Wetterzentrale.de">Wetterzentrale</button>
                 </div>
+                <div id="varGroup"><select id="varSelect" aria-label="Variabile"></select></div>
+                <button class="chip" id="cmpBtn" title="Mostra un grafico che confronta tutti i modelli">⇄ Confronto<span class="cmp-long"> modelli</span></button>
+                <button class="set-btn" id="setBtn" aria-expanded="false" aria-controls="setPanel" title="Modelli, periodo, livelli, soglia, layout">
+                    <svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2.2"/><circle cx="10" cy="17" r="2.2"/></svg>
+                    <span class="set-label">Impostazioni</span>
+                    <span class="set-sum" id="setSummary"></span>
+                    <span class="set-dot"></span>
+                    <svg class="i chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+                </button>
             </div>
-            <div class="ctrl-row" id="varGroup">
-                <label class="lbl" for="varSelect">Variabile</label>
-                <div class="val"><select id="varSelect"></select></div>
-            </div>
+            <div class="set-panel" id="setPanel" hidden>
             <div class="ctrl-row">
                 <span class="lbl">Modelli</span>
                 <div class="val scroll"><span id="modelChips"></span></div>
             </div>
-            <div id="anaBar">
+                <div id="anaBar">
                 <div class="ctrl-row">
                     <span class="lbl">Periodo</span>
                     <div class="val scroll">
@@ -825,7 +875,6 @@
                             <button class="small" id="layersBtn" aria-haspopup="true">☰ Livelli</button>
                             <div class="popover" id="layersPop"></div>
                         </div>
-                        <button class="chip" id="cmpBtn" title="Mostra un grafico che confronta tutti i modelli">⇄ Confronto modelli</button>
                         <div class="th-group" title="Evidenzia una soglia e calcola la probabilità di superarla">
                             <label class="check"><input type="checkbox" id="thOn"> Soglia</label>
                             <select id="thDir" class="small" aria-label="Direzione soglia">
@@ -837,7 +886,7 @@
                         </div>
                     </div>
                 </div>
-            </div>
+                </div>
             <div class="ctrl-row layout-row">
                 <span class="lbl">Layout</span>
                 <div class="val">
@@ -846,6 +895,7 @@
                         <button data-cols="2" title="Due colonne">▯▯ Due colonne</button>
                     </div>
                 </div>
+            </div>
             </div>
         </section>
 
@@ -2235,6 +2285,7 @@
             });
             $('varGroup').style.display = src === 'om' ? '' : 'none';
             $('anaBar').hidden = src !== 'om';
+            $('cmpBtn').hidden = src !== 'om';
 
             const sel = $('varSelect');
             if (!sel.options.length) {
@@ -2274,6 +2325,7 @@
             document.querySelectorAll('#rangeSeg button').forEach(b =>
                 b.classList.toggle('on', !customView && Number(b.dataset.range) === state.range));
             $('layersPop').querySelectorAll('input').forEach(i => { i.checked = !!state.layers[i.name]; });
+            renderSetSummary();
         }
 
         function cardShell(m, extraActions = []) {
@@ -2333,7 +2385,10 @@
                     'Questa località è collegata solo a Wetterzentrale. Per i grafici interattivi cercala per nome in 📍 Località.' }));
             }
             if (src === 'om' && currentVariable().note) {
-                $('notice').append(el('div', { className: 'notice', textContent: currentVariable().note }));
+                $('notice').append(el('details', { className: 'notice' }, [
+                    el('summary', { textContent: 'Cosa mostra questo grafico' }),
+                    el('p', { textContent: currentVariable().note })
+                ]));
             }
 
             if (!visible.length) {
@@ -2722,6 +2777,7 @@
             customView = null;
             saveState();
             applyViewAll();
+            renderSetSummary();
         }));
         $('zoomReset').addEventListener('click', () => { customView = null; applyViewAll(); });
 
@@ -3134,6 +3190,27 @@
         window.addEventListener('resize', fitLocSelect);
         if (document.fonts && document.fonts.ready) document.fonts.ready.then(fitLocSelect);
         setInterval(renderMeta, 30000);
+
+        // ================= Impostazioni dei meteogrammi (chiuse all'apertura) =================
+        $('setBtn').addEventListener('click', () => {
+            const open = $('setPanel').hidden;
+            $('setPanel').hidden = !open;
+            $('setBtn').setAttribute('aria-expanded', open);
+        });
+
+        // Riassunto di ciò che è diverso dal predefinito, accanto al pulsante
+        function renderSetSummary() {
+            const parts = [];
+            const shown = MODELS.filter(m => !state.hidden.includes(m.key)).length;
+            if (shown < MODELS.length) parts.push(`${shown}/${MODELS.length} modelli`);
+            if (state.range) parts.push(`${state.range} giorni`);
+            const th = getTh();
+            if (th.on) parts.push(`soglia ${thLabel(th, currentVariable())}`);
+            if (Object.keys(DEFAULT_LAYERS).some(k => state.layers[k] !== DEFAULT_LAYERS[k])) parts.push('livelli');
+            $('setSummary').textContent = parts.join(' · ');
+            $('setBtn').classList.toggle('custom', parts.length > 0);
+            $('setBtn').title = 'Modelli, periodo, livelli, soglia, layout' + (parts.length ? ' — attivi: ' + parts.join(', ') : '');
+        }
 
         // ================= Avvio =================
         renderAll();
