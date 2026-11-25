@@ -256,6 +256,26 @@
             font-weight: 600;
         }
 
+        /* ---------- Barra delle previsioni (chiusa all'apertura) ---------- */
+        .fc-bar {
+            width: 100%;
+            min-height: 58px;
+            display: flex; align-items: center; justify-content: space-between; gap: 10px;
+            padding: 10px 14px;
+            text-align: left;
+            background: var(--panel);
+            border-radius: var(--radius);
+        }
+        .fc-bar:hover:not(:disabled) { background: var(--panel); border-color: var(--accent); }
+        .fc-sum { display: flex; align-items: center; gap: 10px; min-width: 0; font-size: 14px; color: var(--muted); }
+        .fc-sum b { font-size: 24px; font-weight: 300; color: var(--text); letter-spacing: -0.5px; }
+        .fc-sum .d { color: var(--text); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .fc-sum .hl { white-space: nowrap; }
+        .fc-act { display: inline-flex; align-items: center; gap: 4px; flex-shrink: 0; color: var(--accent); font-size: 13px; font-weight: 700; }
+        .fc-act .chev { transition: transform 0.2s; }
+        .fc-bar[aria-expanded="true"] .fc-act .chev { transform: rotate(180deg); }
+        #fcBody { margin-top: 12px; }
+
         /* ---------- Scheda "Adesso" (stile della foto di riferimento) ---------- */
         .now-wrap { display: grid; grid-template-columns: minmax(0, 560px) minmax(0, 1fr); gap: 14px; align-items: stretch; }
         .now-card { position: relative; overflow: hidden; padding: 16px 18px 14px; }
@@ -718,6 +738,10 @@
                 padding-bottom: env(safe-area-inset-bottom);
             }
         }
+        @media (max-width: 480px) {
+            .fc-label { display: none; }
+            .fc-sum .hl { display: none; }
+        }
         @media (max-width: 380px) {
             .now-bottom { grid-template-columns: 1fr; }
         }
@@ -764,11 +788,20 @@
             </button>
         </div>
 
-        <section class="now-wrap" id="nowSection">
-            <div class="card now-card" id="nowCard"><div class="now-msg">Caricamento…</div></div>
-            <div class="days-wrap">
-                <div class="sec-title">Prossimi giorni</div>
-                <div class="days" id="daysStrip"></div>
+        <section id="nowSection">
+            <button class="card fc-bar" id="fcToggle" aria-expanded="false" aria-controls="fcBody">
+                <span class="fc-sum" id="fcSummary">Previsioni · caricamento…</span>
+                <span class="fc-act">
+                    <span class="fc-label" id="fcLabel">Mostra previsioni</span>
+                    <svg class="i chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+                </span>
+            </button>
+            <div class="now-wrap" id="fcBody" hidden>
+                <div class="card now-card" id="nowCard"><div class="now-msg">Caricamento…</div></div>
+                <div class="days-wrap">
+                    <div class="sec-title">Prossimi giorni</div>
+                    <div class="days" id="daysStrip"></div>
+                </div>
             </div>
         </section>
 
@@ -890,7 +923,8 @@
         <div class="dlg-body guide">
             <h4>Adesso e prossimi giorni</h4>
             <p>
-                La scheda in alto mostra il tempo attuale e i prossimi giorni secondo la previsione standard di
+                La barra in alto riassume il tempo attuale: toccala per aprire la scheda completa e i prossimi giorni,
+                secondo la previsione standard di
                 Open-Meteo (il modello più adatto alla zona). Il colore in cima alla pagina cambia con il tempo:
                 azzurro-grigio con pioggia o nuvole, viola-azzurro con il sereno, rosa-giallo con la neve.
             </p>
@@ -1073,7 +1107,7 @@
                 layers,
                 range: [0, 3, 5, 7, 10].includes(saved.range) ? saved.range : 0,
                 thresholds: saved.thresholds && typeof saved.thresholds === 'object' ? saved.thresholds : {},
-                compare: saved.compare === true,
+                compare: false, // sempre spento all'apertura: si accende con il pulsante
                 compareMode: COMPARE_MODES.some(m => m.key === saved.compareMode) ? saved.compareMode : 'mean',
                 theme: saved.theme === 'light' || saved.theme === 'dark' ? saved.theme : 'auto'
             };
@@ -2970,6 +3004,13 @@
             arrow.innerHTML = `<svg viewBox="0 0 12 12" style="transform: rotate(${(c.wind_direction_10m + 180) % 360}deg)" aria-hidden="true"><path d="M6 0.5l3.8 10L6 8.3l-3.8 2.2z" fill="currentColor"/></svg>`;
             arrow.append('da ' + COMPASS[Math.round(c.wind_direction_10m / 45) % 8]);
 
+            $('fcSummary').replaceChildren(
+                wxIcon(kind, night, 28),
+                el('b', { textContent: deg(c.temperature_2m) }),
+                el('span', { className: 'd', textContent: desc }),
+                el('span', { className: 'hl', textContent: `${deg(dl.temperature_2m_max[0])} / ${deg(dl.temperature_2m_min[0])}` })
+            );
+
             const card = $('nowCard');
             card.replaceChildren(
                 el('div', { className: 'now-top' }, [
@@ -3041,6 +3082,7 @@
             const token = ++nowToken;
             $('nowCard').replaceChildren(el('div', { className: 'now-msg', textContent: 'Caricamento…' }));
             $('daysStrip').replaceChildren();
+            $('fcSummary').textContent = 'Previsioni · caricamento…';
             fetchNow(loc).then(d => {
                 if (token !== nowToken) return;
                 buildNow(d);
@@ -3048,8 +3090,17 @@
             }).catch(err => {
                 if (token !== nowToken) return;
                 $('nowCard').replaceChildren(el('div', { className: 'now-msg', textContent: 'Previsione attuale non disponibile: ' + err.message }));
+                $('fcSummary').textContent = 'Previsioni non disponibili';
             });
         }
+
+        // Apri / chiudi le previsioni (chiuse a ogni apertura della pagina)
+        $('fcToggle').addEventListener('click', () => {
+            const open = $('fcBody').hidden;
+            $('fcBody').hidden = !open;
+            $('fcToggle').setAttribute('aria-expanded', open);
+            $('fcLabel').textContent = open ? 'Nascondi previsioni' : 'Mostra previsioni';
+        });
 
         $('refreshBtn').addEventListener('click', () => {
             nowCache.clear();
