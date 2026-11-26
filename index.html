@@ -966,9 +966,10 @@
             <ul>
                 <li><b>Linee colorate vicine</b> → scenari concordi, previsione più affidabile.</li>
                 <li><b>Linee sparpagliate</b> → molta incertezza, la previsione può cambiare.</li>
-                <li>La <b>linea bianca spessa</b> è la media degli scenari, quella <b>verde</b> la corsa di controllo.</li>
-                <li>Nel grafico a 850 hPa le linee in basso (scala a destra) sono la <b>pioggia ogni 6 ore</b> di ciascuno scenario.</li>
-                <li>Per pioggia e neve la <b>linea gialla</b> è la probabilità (% di scenari) di superare la soglia.</li>
+                <li>La <b>linea bianca spessa</b> è la media degli scenari (Ens. mean), quella <b>verde</b> la corsa operativa (Oper), quella <b>blu</b> la corsa di controllo (GFS e GEM).</li>
+                <li>Nei grafici di temperatura con pioggia le linee in basso (scala a destra, 0–40 mm) sono la <b>pioggia ogni 6 ore</b> di ciascuno scenario.</li>
+                <li>Le <b>precipitazioni</b> sono il totale accumulato dall'inizio della corsa; il <b>vento</b> è in m/s.</li>
+                <li>Come su Wetterzentrale gli orari sono in <b>UTC</b> (z), con un punto ogni 6 ore a partire dalla corsa.</li>
             </ul>
             <h4>Strumenti</h4>
             <ul>
@@ -988,7 +989,8 @@
             <p>
                 Grafici interattivi, previsione attuale e ricerca località: <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a> (dati CC BY 4.0).
                 Immagini: <a href="https://www.wetterzentrale.de/" target="_blank" rel="noopener">Wetterzentrale.de</a>.
-                Gli orari dei grafici interattivi sono locali; l'orario della corsa è in UTC (Z).
+                I grafici interattivi seguono le regole dei meteogrammi di Wetterzentrale: orari in UTC (z), un punto ogni 6 ore,
+                stessi colori, stessa durata e scale simili. Rispetto a loro manca solo la linea del clima 1991–2020.
             </p>
         </div>
     </dialog>
@@ -999,93 +1001,107 @@
             { id: 'vinci', name: 'Vinci', sub: 'Toscana, Italia', lat: 43.7867, lon: 10.9262, geoid: '70549' }
         ];
 
-        // Modelli: identificativi Open-Meteo (om), metadati della corsa (meta) e Wetterzentrale (wz)
+        // Modelli: ensemble Open-Meteo (om), corsa operativa (oper), orario della corsa (meta) e Wetterzentrale (wz).
+        // Durata, griglia e corsa di controllo come nei meteogrammi di Wetterzentrale.
         const MODELS = [
             {
                 key: 'ecm', name: 'ECMWF', desc: 'Europeo', color: '#4ea1ff',
-                om: 'ecmwf_ifs025_ensemble', meta: 'ecmwf_ifs025_ensemble', days: 15,
+                om: 'ecmwf_ifs025_ensemble', meta: 'ecmwf_ifs025_ensemble', oper: ['ecmwf_ifs025'],
+                hours: 360, control: 'hidden',
                 wz: { code: 'ecm', var: '201' },
-                facts: '51 scenari · 25 km · 15 giorni',
+                facts: '50 scenari · 25 km · 15 giorni',
                 info: 'Modello del Centro Europeo per le Previsioni Meteorologiche a Medio Termine (ECMWF). ' +
                       'È il riferimento principale per il medio termine (3–10 giorni) e, nelle verifiche statistiche, ' +
                       'è in media tra i modelli globali più precisi. Aggiornato ogni 6 ore.'
             },
             {
                 key: 'gfs', name: 'GFS', desc: 'Americano', color: '#ff5c5c',
-                om: 'ncep_gefs_seamless', meta: 'ncep_gefs025', days: 16,
+                om: 'ncep_gefs05', meta: 'ncep_gefs05', oper: ['gfs_global', 'ncep_gfs_global'],
+                hours: 384, control: 'show',
                 wz: { code: 'gfs', var: '201' },
-                facts: '31 scenari · 25–50 km · 16 giorni',
-                info: 'Ensemble del servizio meteorologico statunitense (NOAA). Risoluzione 0,25° (~25 km) per i primi ' +
-                      '10 giorni, poi 0,5° (~50 km). Aggiornato ogni 6 ore: utile per confronto con ECMWF e per vedere ' +
+                facts: '30 scenari + controllo · 50 km · 16 giorni',
+                info: 'Ensemble del servizio meteorologico statunitense (NOAA), alla risoluzione di 0,5° (~50 km) ' +
+                      'usata anche da Wetterzentrale. Aggiornato ogni 6 ore: utile per confronto con ECMWF e per vedere ' +
                       'come cambia la tendenza da una corsa all\'altra.'
             },
             {
                 key: 'gem', name: 'GEM', desc: 'Canadese', color: '#ffb347',
-                om: 'gem_global_ensemble', meta: 'cmc_gem_geps', days: 16,
+                om: 'gem_global_ensemble', meta: 'cmc_gem_geps', oper: ['gem_global', 'cmc_gem_gdps'],
+                hours: 384, control: 'show',
                 wz: { code: 'gem', var: '201' },
                 unavailable: ['gust'],
-                facts: '21 scenari · 25 km · 16 giorni',
+                facts: '20 scenari + controllo · 16 giorni',
                 info: 'Ensemble del servizio meteorologico canadese (ECCC). Meno scenari degli altri ma utile come ' +
                       'terza opinione: se concorda con ECMWF e GFS la tendenza è più solida. Aggiornato ogni 12 ore. ' +
                       'Non fornisce le raffiche di vento.'
             },
             {
                 key: 'ico', name: 'ICON', desc: 'Tedesco', color: '#4cd97b',
-                om: 'icon_seamless_eps', meta: 'dwd_icon_eu_eps_native', days: 8,
+                om: 'icon_global_eps', meta: 'dwd_icon_global_eps_native', oper: ['icon_global', 'dwd_icon_global'],
+                hours: 180, control: 'member',
                 wz: { code: 'ico', var: '5' },
-                unavailable: ['t850'],
-                facts: '40 scenari · 13–26 km · 7,5 giorni',
-                info: 'Ensemble del servizio meteorologico tedesco (DWD). Per l\'Italia usa ICON-EU-EPS (13 km, più ' +
-                      'dettagliato) nei primi 5 giorni e poi il globale (26 km) fino a 7,5 giorni: è quindi un modello ' +
-                      'da breve termine. Non fornisce la temperatura a 850 hPa.'
+                unavailable: ['t850', 'gust'],
+                facts: '40 scenari · 26 km · 7,5 giorni',
+                info: 'Ensemble globale del servizio meteorologico tedesco (DWD), come su Wetterzentrale: 26 km e fino ' +
+                      'a 7,5 giorni, quindi un modello da breve termine. Non fornisce la temperatura a 850 hPa né le raffiche.'
             },
             {
                 key: 'aifs', name: 'AIFS', desc: 'Intelligenza artificiale', color: '#d38cff',
-                om: 'ecmwf_aifs025_ensemble', meta: 'ecmwf_aifs025_ensemble', days: 15,
+                om: 'ecmwf_aifs025_ensemble', meta: 'ecmwf_aifs025_ensemble', oper: ['ecmwf_aifs025_single'],
+                hours: 360, control: 'hidden',
                 wz: { code: 'aifs', var: '201' },
                 unavailable: ['gust'],
-                facts: '51 scenari · 25 km · 15 giorni',
+                facts: '50 scenari · 25 km · 15 giorni',
                 info: 'Modello di intelligenza artificiale dell\'ECMWF, addestrato su decenni di dati storici invece di ' +
                       'risolvere le equazioni fisiche. Molto veloce e competitivo con i modelli tradizionali, ma con ' +
                       'dati ogni 6 ore e meno dettagli (niente raffiche).'
             }
         ];
 
-        // Variabili per i grafici interattivi; th = soglia predefinita
+        // Variabili come nei meteogrammi di Wetterzentrale. axis = regola della scala; th = soglia predefinita
         const VARIABLES = [
-            { key: 't850', label: 'Temperatura 850 hPa + pioggia', title: 'Temp. 850 hPa e precipitazioni',
-              om: ['temperature_850hPa', 'precipitation'], kind: 'combo', unit: '°C', th: { dir: 'le', val: 0 },
+            { key: 't850', label: 'Temperatura 850 hPa + pioggia', title: 'Temp. 850 hPa e precipitazioni', axisTitle: 'Temp. 850 hPa (°C)',
+              om: ['temperature_850hPa', 'precipitation'], kind: 'combo', unit: '°C', axis: 'temp', th: { dir: 'le', val: 0 },
               note: 'La temperatura a circa 1500 m di quota: indica la massa d\'aria, senza gli effetti locali del suolo. ' +
-                    'In basso, con la scala a destra, la pioggia ogni 6 ore di ciascuno scenario.' },
-            { key: 't2m',  label: 'Temperatura a 2 m', title: 'Temperatura a 2 m',
-              om: ['temperature_2m'], kind: 'line', unit: '°C', th: { dir: 'le', val: 0 } },
-            { key: 'prec', label: 'Precipitazioni', title: 'Precipitazioni ogni 6 ore',
-              om: ['precipitation'], kind: 'accum', unit: 'mm', th: { dir: 'ge', val: 1 } },
-            { key: 'snow', label: 'Neve', title: 'Neve fresca ogni 6 ore',
-              om: ['snowfall'], kind: 'accum', unit: 'cm', th: { dir: 'ge', val: 1 } },
-            { key: 'wind', label: 'Vento medio (10 m)', title: 'Vento medio a 10 m',
-              om: ['wind_speed_10m'], kind: 'line', unit: 'km/h', min: 0, th: { dir: 'ge', val: 30 } },
-            { key: 'gust', label: 'Raffiche di vento', title: 'Raffiche a 10 m',
-              om: ['wind_gusts_10m'], kind: 'line', unit: 'km/h', min: 0, th: { dir: 'ge', val: 50 } },
-            { key: 'pres', label: 'Pressione al livello del mare', title: 'Pressione al livello del mare',
-              om: ['pressure_msl'], kind: 'line', unit: 'hPa', th: { dir: 'le', val: 1005 } },
-            { key: 'cloud', label: 'Nuvolosità', title: 'Copertura nuvolosa',
-              om: ['cloud_cover'], kind: 'line', unit: '%', min: 0, max: 100, th: { dir: 'ge', val: 80 } }
+                    'In basso, con la scala a destra (0–40 mm), la pioggia ogni 6 ore di ciascuno scenario.' },
+            { key: 't2mp', label: 'Temperatura 2 m + pioggia', title: 'Temp. 2 m e precipitazioni', axisTitle: 'Temp. 2 m (°C)',
+              om: ['temperature_2m', 'precipitation'], kind: 'combo', unit: '°C', axis: 'temp', zero: true, th: { dir: 'le', val: 0 },
+              note: 'La temperatura dell\'aria vicino al suolo. In basso, con la scala a destra (0–40 mm), la pioggia ogni 6 ore.' },
+            { key: 't2m',  label: 'Temperatura a 2 m', title: 'Temperatura a 2 m', axisTitle: 'Temp. 2 m (°C)',
+              om: ['temperature_2m'], kind: 'line', unit: '°C', axis: 'temp', zero: true, th: { dir: 'le', val: 0 } },
+            { key: 'prec', label: 'Precipitazioni cumulate', title: 'Precipitazioni cumulate', axisTitle: 'Precipitazioni (mm)',
+              om: ['precipitation'], kind: 'cum', unit: 'mm', axis: 'prec', th: { dir: 'ge', val: 10 },
+              note: 'Come su Wetterzentrale: la pioggia totale accumulata dall\'inizio della corsa (scala 0–45 mm).' },
+            { key: 'snow', label: 'Neve cumulata', title: 'Neve fresca cumulata', axisTitle: 'Neve fresca (cm)',
+              om: ['snowfall'], kind: 'cum', unit: 'cm', axis: 'snow', th: { dir: 'ge', val: 5 },
+              note: 'La neve fresca totale accumulata dall\'inizio della corsa.' },
+            { key: 'wind', label: 'Vento medio (10 m)', title: 'Vento a 10 m', axisTitle: 'Vento 10 m (m/s)',
+              om: ['wind_speed_10m'], kind: 'line', unit: 'm/s', axis: 'wind', th: { dir: 'ge', val: 8 } },
+            { key: 'gust', label: 'Raffiche di vento', title: 'Raffiche a 10 m', axisTitle: 'Raffiche 10 m (m/s)',
+              om: ['wind_gusts_10m'], kind: 'line', unit: 'm/s', axis: 'wind', th: { dir: 'ge', val: 14 } },
+            { key: 'pres', label: 'Pressione al livello del mare', title: 'Pressione al livello del mare', axisTitle: 'Pressione (hPa)',
+              om: ['pressure_msl'], kind: 'line', unit: 'hPa', axis: 'pres', th: { dir: 'le', val: 1005 } },
+            { key: 'cloud', label: 'Nuvolosità', title: 'Copertura nuvolosa', axisTitle: 'Nuvolosità (%)',
+              om: ['cloud_cover'], kind: 'line', unit: '%', axis: 'pct', th: { dir: 'ge', val: 80 } }
         ];
 
-        const CTRL_COLOR = '#39e639';
+        // Colori dei meteogrammi di Wetterzentrale (presi dai loro dati): 20 colori ciclici per gli scenari
+        const WZ_COLORS = ['#0024b6', '#0048b6', '#006cb6', '#0090b6', '#00a5ac', '#00a573', '#00a556', '#00a539', '#00ac1c', '#00b400',
+                           '#b6b600', '#b6a200', '#b69000', '#b67e00', '#b66c00', '#a55a00', '#a54800', '#9e3615', '#902415', '#811215'];
+        const MEAN_COLOR = '#fefefe', OPER_COLOR = '#00dc00', CTRL_COLOR = '#0000ff';
         const RAIN_COLOR = '#6cc4ff';
 
         const LAYERS = [
-            { key: 'members', label: 'Scenari (spaghetti)', swatch: 'linear-gradient(90deg,#3d7fd6,#3fbf7f,#b0b030,#d07a30,#c04060)' },
-            { key: 'mean',    label: 'Media degli scenari', swatch: '#fff' },
+            { key: 'members', label: 'Scenari (spaghetti)', swatch: 'linear-gradient(90deg,#0024b6,#00a573,#b6b600,#b66c00,#811215)' },
+            { key: 'mean',    label: 'Media degli scenari (Ens. mean)', swatch: MEAN_COLOR },
+            { key: 'oper',    label: 'Corsa operativa (Oper)', swatch: OPER_COLOR },
+            { key: 'control', label: 'Corsa di controllo (GFS, GEM)', swatch: CTRL_COLOR },
             { key: 'median',  label: 'Mediana', swatch: 'repeating-linear-gradient(90deg,#fff 0 5px,transparent 5px 8px)' },
-            { key: 'control', label: 'Corsa di controllo', swatch: CTRL_COLOR },
             { key: 'band90',  label: 'Fascia 10–90%', swatch: 'rgba(255,255,255,.35)' },
             { key: 'band50',  label: 'Fascia 25–75%', swatch: 'rgba(255,255,255,.6)' },
-            { key: 'precip',  label: 'Pioggia (grafico 850 hPa)', swatch: RAIN_COLOR }
+            { key: 'precip',  label: 'Pioggia (grafici con temperatura)', swatch: RAIN_COLOR }
         ];
-        const DEFAULT_LAYERS = { members: true, mean: true, median: false, control: true, band90: false, band50: false, precip: true };
+        const DEFAULT_LAYERS = { members: true, mean: true, oper: true, control: true, median: false, band90: false, band50: false, precip: true };
 
         const COMPARE_MODES = [
             { key: 'mean', label: 'Media' },
@@ -1136,7 +1152,8 @@
                 variable: VARIABLES.some(v => v.key === saved.variable) ? saved.variable : 't850',
                 layers,
                 range: [0, 3, 5, 7, 10].includes(saved.range) ? saved.range : 0,
-                thresholds: saved.thresholds && typeof saved.thresholds === 'object' ? saved.thresholds : {},
+                thresholds: saved.thVer === 2 && saved.thresholds && typeof saved.thresholds === 'object' ? saved.thresholds : {},
+                thVer: 2, // soglie azzerate col passaggio a vento in m/s e piogge cumulate
                 compare: false, // sempre spento all'apertura: si accende con il pulsante
                 compareMode: COMPARE_MODES.some(m => m.key === saved.compareMode) ? saved.compareMode : 'mean',
                 theme: saved.theme === 'light' || saved.theme === 'dark' ? saved.theme : 'auto'
@@ -1193,7 +1210,7 @@
                 val: typeof t.val === 'number' && isFinite(t.val) ? t.val : v.th.val
             };
         }
-        const thUnit = v => v.kind === 'accum' ? `${v.unit}/6 h` : v.unit;
+        const thUnit = v => v.unit;
         const thLabel = (th, v) => `${th.dir === 'ge' ? '≥' : '≤'} ${nf.format(th.val)} ${thUnit(v)}`;
         const meets = (x, th) => th.dir === 'ge' ? x >= th.val : x <= th.val;
 
@@ -1220,11 +1237,11 @@
 
         const isMobile = () => window.matchMedia('(max-width: 760px)').matches;
 
-        // Le ore di Open-Meteo (timezone=auto) sono ore locali senza fuso: le trattiamo come UTC
-        // e le formattiamo in UTC, così restano invariate.
+        // I meteogrammi chiedono a Open-Meteo le ore in UTC (come Wetterzentrale); la previsione "Adesso" le ore locali.
+        // In entrambi i casi le ore si leggono e si formattano in UTC, così restano invariate.
         const HOUR = 3600e3, DAY = 86400e3;
         const parseTime = t => Date.parse(t + ':00Z');
-        const fmtTick = new Intl.DateTimeFormat('it-IT', { weekday: 'short', day: '2-digit', month: '2-digit', timeZone: 'UTC' });
+        const fmtDM = new Intl.DateTimeFormat('it-IT', { day: 'numeric', month: 'short', timeZone: 'UTC' });
         const fmtDayLong = new Intl.DateTimeFormat('it-IT', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' });
         const fmtFull = new Intl.DateTimeFormat('it-IT', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', timeZone: 'UTC' });
         const hh = t => String(new Date(t).getUTCHours()).padStart(2, '0');
@@ -1233,7 +1250,8 @@
         // Arrotonda a un decimale ed evita "-0"
         const fmtV = (x, unit) => x == null || !isFinite(x) ? '—' : nf.format(Math.round(x * 10) / 10 || 0) + (unit ? ' ' + unit : '');
         const pct = p => p == null ? '—' : Math.round(p) + '%';
-        const fmtCoord = (x, pos, neg) => `${Math.abs(x).toFixed(2)}${x >= 0 ? pos : neg}`;
+        // Coordinate del punto di griglia come su Wetterzentrale: 43.75N, 11E
+        const fmtGrid = (x, pos, neg) => `${+Math.abs(x).toFixed(2)}${x >= 0 ? pos : neg}`;
 
         function quantile(sorted, q) {
             const pos = (sorted.length - 1) * q;
@@ -1241,8 +1259,8 @@
             return sorted[lo] + (sorted[hi] - sorted[lo]) * (pos - lo);
         }
 
-        // Tavolozza degli scenari ispirata a Wetterzentrale: blu → verde → oliva → arancio → rosso, ciclica ogni 20
-        const memberColor = k => `hsl(${(220 - ((k - 1) % 20) * 13 + 360) % 360}, 68%, 54%)`;
+        // Colore dello scenario k: stessa tavolozza ciclica di Wetterzentrale
+        const memberColor = k => WZ_COLORS[(k - 1) % WZ_COLORS.length];
 
         function lastValidIndex(arr) {
             for (let i = arr.length - 1; i >= 0; i--) if (arr[i] != null) return i;
@@ -1268,16 +1286,7 @@
         const cache = new Map();
         const metaCache = new Map();
 
-        async function fetchEnsemble(model, loc, vars) {
-            const url = 'https://ensemble-api.open-meteo.com/v1/ensemble?' + new URLSearchParams({
-                latitude: loc.lat,
-                longitude: loc.lon,
-                hourly: vars.join(','),
-                models: model.om,
-                forecast_days: model.days,
-                timezone: 'auto',
-                wind_speed_unit: 'kmh'
-            });
+        function cachedJSON(url) {
             if (cache.has(url)) return cache.get(url);
             const promise = fetch(url).then(async r => {
                 const data = await r.json().catch(() => ({}));
@@ -1287,6 +1296,35 @@
             cache.set(url, promise);
             promise.catch(() => cache.delete(url));
             return promise;
+        }
+
+        // Ore in UTC e vento in m/s, come nei meteogrammi di Wetterzentrale. Si chiede anche il giorno
+        // precedente, così i dati coprono sempre l'inizio della corsa.
+        const requestParams = (loc, vars, modelId, days) => new URLSearchParams({
+            latitude: loc.lat,
+            longitude: loc.lon,
+            hourly: vars.join(','),
+            models: modelId,
+            past_days: 1,
+            forecast_days: days,
+            timezone: 'GMT',
+            wind_speed_unit: 'ms'
+        });
+
+        function fetchEnsemble(model, loc, vars) {
+            const days = Math.min(35, Math.ceil(model.hours / 24) + 1);
+            return cachedJSON('https://ensemble-api.open-meteo.com/v1/ensemble?' + requestParams(loc, vars, model.om, days));
+        }
+
+        // Corsa operativa (deterministica): si prova il nome attuale del modello e poi quelli alternativi.
+        // Se non arriva, il grafico si disegna lo stesso senza la linea "Oper".
+        async function fetchOper(model, loc, vars) {
+            for (const id of model.oper || []) {
+                try {
+                    return await cachedJSON('https://api.open-meteo.com/v1/forecast?' + requestParams(loc, vars, id, 16));
+                } catch (e) { /* prova il nome successivo */ }
+            }
+            return null;
         }
 
         // Orario di inizializzazione dell'ultima corsa del modello
@@ -1310,7 +1348,7 @@
                 const arr = hourly[k];
                 if (!mm || !Array.isArray(arr) || !arr.some(x => x != null)) return;
                 const num = mm[1] ? parseInt(mm[1], 10) : 0;
-                out.push({ num, name: num === 0 ? 'Controllo' : 'P' + num, arr });
+                out.push({ num, name: num === 0 ? 'Control' : 'P' + num, arr });
             });
             return out;
         }
@@ -1336,7 +1374,7 @@
             return st;
         }
 
-        // Blocchi di 6 ore allineati a 00/06/12/18 locali. Il valore orario è l'accumulo dell'ora precedente.
+        // Blocchi di 6 ore allineati a 00/06/12/18 UTC. Il valore orario è l'accumulo dell'ora precedente.
         function buildBlocks(times, lastIdx) {
             const blocks = [];
             let cur = null;
@@ -1362,14 +1400,26 @@
             return 100 * valid.filter(x => meets(x, th)).length / valid.length;
         }
 
-        function processSeries(data, variable, model) {
+        function processSeries(data, variable, model, run, oper) {
             const h = data.hourly;
             if (!h || !Array.isArray(h.time)) return null;
             const times = h.time.map(parseTime);
-            const lineVar = variable.kind === 'accum' ? null : variable.om[0];
-            const accVar = variable.kind === 'accum' ? variable.om[0] : (variable.kind === 'combo' ? variable.om[1] : null);
-            const main = lineVar ? collectMembers(h, lineVar, model.om) : null;
-            const acc = accVar ? collectMembers(h, accVar, model.om) : null;
+            const lineVar = variable.kind === 'cum' ? null : variable.om[0];
+            const accVar = variable.kind === 'cum' ? variable.om[0] : (variable.kind === 'combo' ? variable.om[1] : null);
+
+            // Corsa di controllo come su Wetterzentrale: nascosta (ECMWF, AIFS), mostrata in blu (GFS, GEM)
+            // o contata come scenario normale (ICON)
+            const fixControl = list => {
+                if (!list) return list;
+                if (model.control === 'hidden') return list.filter(m => m.num !== 0);
+                if (model.control === 'member') {
+                    const k = Math.max(0, ...list.map(m => m.num)) + 1;
+                    return list.map(m => m.num === 0 ? { num: k, name: 'P' + k, arr: m.arr } : m);
+                }
+                return list;
+            };
+            const main = fixControl(lineVar ? collectMembers(h, lineVar, model.om) : null);
+            const acc = fixControl(accVar ? collectMembers(h, accVar, model.om) : null);
             if (lineVar ? !main.length : !acc.length) return null;
 
             const byName = new Map();
@@ -1381,39 +1431,75 @@
             if (acc) add(acc, 'hourlyAcc');
             const members = [...byName.values()].sort((a, b) => a.num - b.num);
 
+            // Dall'inizio della corsa e per la stessa durata dei meteogrammi di Wetterzentrale
+            const init = run ? run.getTime() : Math.floor((Date.now() - 6 * HOUR) / (6 * HOUR)) * 6 * HOUR;
+            const end = init + model.hours * HOUR;
+
             let lastIdx = -1;
-            members.forEach(m => [lineVar ? m.main : m.hourlyAcc].forEach(arr => {
+            members.forEach(m => {
+                const arr = lineVar ? m.main : m.hourlyAcc;
                 if (arr) lastIdx = Math.max(lastIdx, lastValidIndex(arr));
-            }));
-            if (lastIdx < 1) return null;
+            });
+            while (lastIdx >= 0 && times[lastIdx] > end) lastIdx--;
+            if (lastIdx < 1 || times[lastIdx] <= init) return null;
+
+            // Un punto ogni 6 ore, da +6 h fino alla fine della corsa
+            const pidx = [];
+            for (let i = 0; i <= lastIdx; i++) {
+                if (times[i] > init && (times[i] - init) % (6 * HOUR) === 0) pidx.push(i);
+            }
+
+            // Corsa operativa allineata alle stesse ore
+            let operS = null;
+            if (oper && oper.hourly && Array.isArray(oper.hourly.time)) {
+                const pos = new Map(oper.hourly.time.map((t, i) => [t, i]));
+                const align = name => {
+                    const src = oper.hourly[name];
+                    if (!Array.isArray(src)) return null;
+                    const arr = h.time.map(t => { const i = pos.get(t); return i == null ? null : src[i]; });
+                    return arr.some(x => x != null) ? arr : null;
+                };
+                operS = { name: 'Oper', num: -1, color: OPER_COLOR, main: lineVar ? align(lineVar) : null, hourlyAcc: accVar ? align(accVar) : null };
+                if (!operS.main && !operS.hourlyAcc) operS = null;
+            }
 
             const s = {
-                model, variable, times, labels: h.time, members, lastIdx,
-                t0: times[0], xMax: times[lastIdx],
+                model, variable, times, labels: h.time, members, oper: operS, lastIdx, pidx,
+                tStart: times[0], init, end, t0: init, xMax: Math.min(end, times[lastIdx]),
                 lat: data.latitude, lon: data.longitude, elev: data.elevation
             };
             if (main) s.mainStats = seriesStats(members.filter(m => m.main).map(m => m.main), lastIdx + 1);
             if (acc) {
-                const accLast = Math.max(...members.filter(m => m.hourlyAcc).map(m => lastValidIndex(m.hourlyAcc)));
-                s.blocks = buildBlocks(times, accLast);
-                members.forEach(m => { if (m.hourlyAcc) m.acc = s.blocks.map(b => sumRange(m.hourlyAcc, b.i0, b.i1)); });
+                const accLast = Math.min(lastIdx, Math.max(...members.filter(m => m.hourlyAcc).map(m => lastValidIndex(m.hourlyAcc))));
+                // Blocchi di 6 ore dopo l'inizio della corsa; il valore vale alla fine del blocco
+                s.blocks = buildBlocks(times, accLast).filter(b => b.start >= init && b.end <= end);
+                members.concat(operS && operS.hourlyAcc ? [operS] : []).forEach(m => {
+                    if (!m.hourlyAcc) return;
+                    m.acc = s.blocks.map(b => sumRange(m.hourlyAcc, b.i0, b.i1));
+                    let tot = 0;
+                    m.cum = m.acc.map(x => x == null ? null : (tot += x));   // totale dall'inizio della corsa
+                });
                 s.accStats = seriesStats(members.filter(m => m.acc).map(m => m.acc), s.blocks.length);
-                if (!lineVar) s.xMax = s.blocks.length ? s.blocks[s.blocks.length - 1].end : s.xMax;
+                s.cumStats = seriesStats(members.filter(m => m.cum).map(m => m.cum), s.blocks.length);
+                if (!lineVar) {
+                    if (!s.blocks.length) return null;
+                    s.xMax = s.blocks[s.blocks.length - 1].end;
+                }
             }
             return s;
         }
 
-        const hourIndex = (s, t) => Math.max(0, Math.min(s.lastIdx, Math.round((t - s.t0) / HOUR)));
+        const hourIndex = (s, t) => Math.max(0, Math.min(s.lastIdx, Math.round((t - s.tStart) / HOUR)));
         function blockIndex(s, t) {
             if (!s.blocks) return null;
-            const j = s.blocks.findIndex(b => t >= b.start && t < b.end);
+            const j = s.blocks.findIndex(b => t > b.start && t <= b.end);
             return j < 0 ? null : j;
         }
 
-        // Probabilità di soglia nel tempo (per ora o per blocco di 6 h)
+        // Probabilità di soglia nel tempo: per ora (linee) o per blocco sul totale cumulato
         function probSeries(s, th) {
-            if (s.variable.kind === 'accum') {
-                return s.blocks.map((b, j) => probOf(s.members.filter(m => m.acc).map(m => m.acc[j]), th));
+            if (s.variable.kind === 'cum') {
+                return s.blocks.map((b, j) => probOf(s.members.filter(m => m.cum).map(m => m.cum[j]), th));
             }
             const out = [];
             for (let i = 0; i <= s.lastIdx; i++) out.push(probOf(s.members.filter(m => m.main).map(m => m.main[i]), th));
@@ -1441,7 +1527,7 @@
                 position: opts.position,
                 min: opts.min, max: opts.max,
                 title: { display: true, text: opts.title, color: '#fff', font: { size: 11 } },
-                ticks: { color: '#fff', font: { size: 11 } },
+                ticks: { color: '#fff', font: { size: 11 }, stepSize: opts.step, includeBounds: false },
                 grid: { color: opts.grid === false ? 'transparent' : 'rgba(255,255,255,0.22)' },
                 border: { color: '#777', dash: [2, 3] }
             };
@@ -1452,6 +1538,7 @@
         function xAxis() {
             return {
                 type: 'linear',
+                title: { display: true, text: 'Data (UTC)', color: '#fff', font: { size: 10 }, padding: 0 },
                 grid: { color: ctx => ctx.tick && isMidnight(ctx.tick.value) ? 'rgba(255,255,255,0.3)' : 'rgba(255,255,255,0.11)' },
                 border: { color: '#777', dash: [2, 3] },
                 afterBuildTicks: ax => {
@@ -1459,20 +1546,19 @@
                     if (!isFinite(min) || !isFinite(max) || max <= min) return;
                     const ppd = (ax.width || 600) / ((max - min) / DAY);
                     ax._ppd = ppd;
-                    const step = Math.max(1, Math.ceil(64 / ppd));
-                    const sub = ppd >= 480 ? 3 * HOUR : ppd >= 240 ? 6 * HOUR : ppd >= 90 ? 12 * HOUR : DAY;
+                    // Come su Wetterzentrale: linee ogni giorno, etichette "26 nov 00z" ogni 1–2 giorni
+                    ax._step = Math.max(1, Math.ceil(84 / ppd));
+                    ax._d0 = Math.floor(min / DAY) * DAY;   // etichette contate dal giorno della corsa
+                    const sub = ppd >= 480 ? 3 * HOUR : ppd >= 240 ? 6 * HOUR : ppd >= 120 ? 12 * HOUR : DAY;
                     const ticks = [];
-                    for (let t = Math.ceil(min / sub) * sub; t <= max; t += sub) {
-                        if (isMidnight(t) && Math.round(t / DAY) % step !== 0) continue;
-                        ticks.push({ value: t });
-                    }
+                    for (let t = Math.ceil(min / sub) * sub; t <= max; t += sub) ticks.push({ value: t });
                     ax.ticks = ticks;
                 },
                 ticks: {
                     color: '#fff', font: { size: 11 }, maxRotation: 0, autoSkip: false,
                     callback: function (v) {
-                        if (isMidnight(v)) return fmtTick.format(v);
-                        return this._ppd >= 240 ? hh(v) : '';
+                        if (isMidnight(v)) return Math.round((v - this._d0) / DAY) % this._step === 0 ? `${fmtDM.format(v)} 00z` : '';
+                        return this._ppd >= 240 ? `${hh(v)}z` : '';
                     }
                 }
             };
@@ -1493,6 +1579,20 @@
         function decorPlugin(cs) {
             return {
                 id: 'wzDecor',
+                beforeDatasetsDraw(c) {
+                    if (!cs.zeroLine || !c.scales.y) return;
+                    const y = c.scales.y, a = c.chartArea;
+                    if (y.min > 0 || y.max < 0) return;
+                    const py = y.getPixelForValue(0), ctx = c.ctx;
+                    ctx.save();
+                    ctx.strokeStyle = '#e6e6e6';
+                    ctx.lineWidth = 1.5;
+                    ctx.beginPath();
+                    ctx.moveTo(a.left, py);
+                    ctx.lineTo(a.right, py);
+                    ctx.stroke();
+                    ctx.restore();
+                },
                 afterDatasetsDraw(c) {
                     if (cs.thLine == null || !c.scales.y) return;
                     const y = c.scales.y, a = c.chartArea;
@@ -1593,50 +1693,71 @@
             };
         }
 
-        // Adatta l'asse verticale ai dati visibili nell'intervallo mostrato
+        // Scale come nei meteogrammi di Wetterzentrale (regole ricavate dalle loro immagini)
+        // Tacche come su Wetterzentrale: almeno ogni 2 unità (ogni 2 °C fino a 35 °C di ampiezza, poi ogni 5)
+        const stepFor = span => span < 8 ? (span <= 4 ? 0.5 : 1) : ([2, 5, 10, 20, 50].find(st => span / st <= 18) || 100);
+        const floorTo = (x, st) => Math.floor(x / st) * st;
+        const ceilTo = (x, st) => Math.ceil(x / st) * st;
+
         function fitY(cs) {
-            const c = cs.chart;
-            const xs = c.options.scales.x;
-            let lo = Infinity, hi = -Infinity, hi2 = 0;
+            const c = cs.chart, xs = c.options.scales.x, y = c.options.scales.y;
+            let lo = Infinity, hi = -Infinity, mlo = Infinity, mhi = -Infinity;
             c.data.datasets.forEach(d => {
-                if (d.hidden || d._noFit) return;
-                const ax = d.yAxisID || 'y';
-                for (const p of d.data) {
-                    if (p.y == null || p.x < xs.min || p.x > xs.max) continue;
-                    if (ax === 'y') { if (p.y < lo) lo = p.y; if (p.y > hi) hi = p.y; }
-                    else if (ax === 'y2' && p.y > hi2) hi2 = p.y;
-                }
+                if (d.hidden || d._noFit || (d.yAxisID || 'y') !== 'y') return;
+                d.data.forEach(p => {
+                    if (p.y == null || p.x < xs.min || p.x > xs.max) return;
+                    if (p.y < lo) lo = p.y;
+                    if (p.y > hi) hi = p.y;
+                    if (d._kind === 'mean') { if (p.y < mlo) mlo = p.y; if (p.y > mhi) mhi = p.y; }
+                });
             });
-            const f = cs.fit || {};
-            const y = c.options.scales.y;
-            if (f.fixed) { y.min = f.fixed.min; y.max = f.fixed.max; }
-            else {
-                if (cs.thLine != null) { lo = Math.min(lo, cs.thLine); hi = Math.max(hi, cs.thLine); }
-                if (!isFinite(lo) || !isFinite(hi)) { lo = f.floor != null ? f.floor : 0; hi = lo + 1; }
-                if (f.floor != null) lo = f.floor;
-                if (hi - lo < 1e-6) hi = lo + 1;
-                const pad = (hi - lo) * 0.04;
-                const lo2 = f.floor != null ? lo : lo - pad, hi2p = hi + pad;
-                const step = niceStep((hi2p - lo2) / 7);
-                y.min = Math.floor(lo2 / step) * step;
-                y.max = Math.ceil(hi2p / step) * step;
+            if (cs.thLine != null) { lo = Math.min(lo, cs.thLine); hi = Math.max(hi, cs.thLine); }
+            if (!isFinite(lo)) { lo = 0; hi = 1; }
+            if (!isFinite(mlo)) { mlo = lo; mhi = hi; }
+            let min, max;
+            switch (cs.axisRule) {
+                case 'temp':   // fondo dalla media degli scenari (spazio per la pioggia), cima dai valori più alti
+                    min = floorTo(mlo - 0.6 * (mhi - mlo) - 10, 10);
+                    max = ceilTo(hi + 0.2 * (hi - lo), 5);
+                    break;
+                case 'prec': min = 0; max = 45; break;                                   // fissa, come su Wetterzentrale
+                case 'snow': min = 0; max = Math.max(10, ceilTo(hi, 5)); break;
+                case 'wind': min = 0; max = Math.max(15, ceilTo(hi * 1.5, 5)); break;
+                case 'pres': min = floorTo(lo - 6, 5); max = ceilTo(hi + 8, 5); break;
+                case 'pct':  min = 0; max = 100; break;
+                case 'zero': min = 0; max = ceilTo(Math.max(hi, 1) * 1.1, stepFor(Math.max(hi, 1))); break;
+                default: {
+                    const st = stepFor(hi - lo || 1);
+                    min = floorTo(lo - (hi - lo) * 0.04, st);
+                    max = ceilTo(hi + (hi - lo) * 0.04, st);
+                }
             }
-            if (c.options.scales.y2) {
-                c.options.scales.y2.min = 0;
-                c.options.scales.y2.max = niceStep(Math.max(hi2 * 2.2, 8));
+            if (!(max > min)) max = min + 1;
+            y.min = min;
+            y.max = max;
+            y.ticks.stepSize = stepFor(max - min);
+            if (c.options.scales.y2) {   // pioggia ogni 6 ore: scala fissa 0–40 mm come su Wetterzentrale
+                const y2 = c.options.scales.y2;
+                y2.min = 0;
+                y2.max = 40;
+                y2.ticks.stepSize = 10;
             }
         }
 
-        function viewRange() {
+        // Ogni modello dalla sua corsa e per la sua durata, come su Wetterzentrale; il confronto copre tutto.
+        // Lo zoom libero vale invece per tutti i grafici insieme.
+        function viewRange(cs) {
             if (!isFinite(glob.t0)) return [undefined, undefined];
             if (customView) return [customView.min, customView.max];
-            if (state.range) return [glob.t0, Math.min(glob.t0 + state.range * DAY, glob.tmax)];
-            return [glob.t0, glob.tmax];
+            const s = cs && cs.series;
+            const start = s ? s.init : glob.t0;
+            const end = s ? s.end : glob.tmax;
+            return [start, state.range ? Math.min(start + state.range * DAY, end) : end];
         }
 
         function applyView(cs) {
             if (!cs.chart) return;
-            const [min, max] = viewRange();
+            const [min, max] = viewRange(cs);
             const xs = cs.chart.options.scales.x;
             xs.min = min;
             xs.max = max;
@@ -1710,17 +1831,13 @@
 
         function drawMember(cs, name) {
             const s = cs.series, c = cs.chart, ctx = cs.octx;
-            const m = s.members.find(mm => mm.name === name);
+            const m = name === 'Oper' ? s.oper : s.members.find(mm => mm.name === name);
             if (!m) return;
-            const xs = c.scales.x;
+            const xs = c.scales.x, kind = s.variable.kind;
             const paths = [];
-            if (s.variable.kind !== 'accum' && m.main) {
-                const pts = [];
-                for (let i = 0; i <= s.lastIdx; i++) pts.push([s.times[i], m.main[i]]);
-                paths.push([c.scales.y, pts]);
-            }
-            const accAxis = s.variable.kind === 'accum' ? c.scales.y : c.scales.y2;
-            if (m.acc && accAxis) paths.push([accAxis, s.blocks.map((b, j) => [b.mid, m.acc[j]])]);
+            if (kind !== 'cum' && m.main) paths.push([c.scales.y, s.pidx.map(i => [s.times[i], m.main[i]])]);
+            if (kind === 'cum' && m.cum) paths.push([c.scales.y, s.blocks.map((b, j) => [b.end, m.cum[j]])]);
+            if (kind === 'combo' && m.acc && c.scales.y2) paths.push([c.scales.y2, s.blocks.map((b, j) => [b.end, m.acc[j]])]);
             paths.forEach(([ay, pts]) => {
                 [[5.5, 'rgba(0,0,0,0.9)'], [2.6, m.color]].forEach(([w, col]) => {
                     ctx.beginPath();
@@ -1780,7 +1897,8 @@
                 return;
             }
             if (!inArea(a, x, y)) { if (e.pointerType === 'mouse') clearHover(); return; }
-            hoverT = c.scales.x.getValueForPixel(x);
+            // Un punto ogni 6 ore, come su Wetterzentrale: il mirino si aggancia al più vicino
+            hoverT = Math.round(c.scales.x.getValueForPixel(x) / (6 * HOUR)) * 6 * HOUR;
             allCS.forEach(o => { if (o !== cs) { o.highlight = o.legendHL; if (o.tip) o.tip.style.display = 'none'; } });
             cs.highlight = cs.series ? (nearestMember(cs, y) || cs.legendHL) : null;
             showTip(cs, x, y);
@@ -1795,20 +1913,22 @@
         document.addEventListener('pointerdown', e => { if (!e.target.closest('.wz-plot')) clearHover(); });
 
         function memberVisible(cs, m) {
+            if (m === cs.series.oper) return state.layers.oper;
             if (m.num === 0) return state.layers.control;
             return state.layers.members && !cs.off.has(m.name);
         }
 
         function nearestMember(cs, y) {
-            const s = cs.series, c = cs.chart;
+            const s = cs.series, c = cs.chart, kind = s.variable.kind;
             const i = hourIndex(s, hoverT), j = blockIndex(s, hoverT);
-            const accAxis = s.variable.kind === 'accum' ? c.scales.y : (state.layers.precip ? c.scales.y2 : null);
+            const accAxis = kind === 'cum' ? c.scales.y : (state.layers.precip ? c.scales.y2 : null);
             let best = null, bd = 12;
-            s.members.forEach(m => {
+            s.members.concat(s.oper ? [s.oper] : []).forEach(m => {
                 if (!memberVisible(cs, m)) return;
                 const cand = [];
-                if (s.variable.kind !== 'accum' && m.main && m.main[i] != null) cand.push(c.scales.y.getPixelForValue(m.main[i]));
-                if (accAxis && m.acc && j != null && m.acc[j] != null) cand.push(accAxis.getPixelForValue(m.acc[j]));
+                if (kind !== 'cum' && m.main && m.main[i] != null) cand.push(c.scales.y.getPixelForValue(m.main[i]));
+                const av = j == null ? null : kind === 'cum' ? (m.cum && m.cum[j]) : (m.acc && m.acc[j]);
+                if (accAxis && av != null) cand.push(accAxis.getPixelForValue(av));
                 cand.forEach(py => { const d = Math.abs(py - y); if (d < bd) { bd = d; best = m.name; } });
             });
             return best;
@@ -1837,49 +1957,64 @@
             tip.style.top = Math.max(4, Math.min(H - th - 4, y - th / 2)) + 'px';
         }
 
+        // Ora in UTC come su Wetterzentrale, con anticipo dalla corsa e ora locale
+        function tipTitle(s, t) {
+            let txt = `${fmtDayLong.format(t)} ${hh(t)}z (+${Math.round((t - s.init) / HOUR)} h)`;
+            if (typeof metaOffset === 'number') {
+                const lt = t + metaOffset * 1000;
+                txt += ` · ore ${hh(lt)}:${String(new Date(lt).getUTCMinutes()).padStart(2, '0')}`;
+            }
+            return el('div', { className: 't', textContent: txt });
+        }
+        const hlRow = (m, val) => el('div', { className: 'hl' }, [el('i', { style: `background:${m.color}` }), `${m.name}: ${val}`]);
+
         function modelTip(cs) {
             const s = cs.series, v = s.variable, th = getTh(v);
-            const out = [];
-            const hlM = cs.highlight ? s.members.find(m => m.name === cs.highlight) : null;
+            if (hoverT <= s.init || hoverT > s.xMax) return null;
+            const out = [tipTitle(s, hoverT)];
+            const hlM = cs.highlight ? (cs.highlight === 'Oper' ? s.oper : s.members.find(m => m.name === cs.highlight)) : null;
             const ctrl = s.members.find(m => m.num === 0);
-            if (v.kind !== 'accum') {
+            const op = state.layers.oper ? s.oper : null;
+            if (v.kind !== 'cum') {
                 const i = hourIndex(s, hoverT), st = s.mainStats;
-                out.push(el('div', { className: 't', textContent: fmtFull.format(s.times[i]) }));
-                if (hlM && hlM.main) out.push(el('div', { className: 'hl' }, [el('i', { style: `background:${hlM.color}` }), `${hlM.name}: ${fmtV(hlM.main[i], v.unit)}`]));
+                if (hlM && hlM.main) out.push(hlRow(hlM, fmtV(hlM.main[i], v.unit)));
                 out.push(
-                    tipRow('Media', fmtV(st.mean[i], v.unit)),
+                    tipRow('Ens. mean', fmtV(st.mean[i], v.unit)),
                     tipRow('Mediana', fmtV(st.median[i], v.unit)),
                     tipRow('Min … max', `${fmtV(st.min[i])} … ${fmtV(st.max[i])}`),
                     tipRow('10–90%', `${fmtV(st.p10[i])} … ${fmtV(st.p90[i])}`),
                     tipRow('Dispersione', fmtV(st.p90[i] - st.p10[i], v.unit))
                 );
-                if (ctrl && ctrl.main) out.push(tipRow('Controllo', fmtV(ctrl.main[i], v.unit)));
+                if (op && op.main) out.push(tipRow('Oper', fmtV(op.main[i], v.unit), '', OPER_COLOR));
+                if (ctrl && ctrl.main) out.push(tipRow('Control', fmtV(ctrl.main[i], v.unit), '', CTRL_COLOR));
                 if (th.on) out.push(tipSep(), tipRow(`Prob. ${thLabel(th, v)}`, pct(probOf(s.members.map(m => m.main && m.main[i]), th)), 'th'));
                 if (v.kind === 'combo' && s.blocks && state.layers.precip) {
                     const j = blockIndex(s, hoverT);
                     if (j != null) {
                         const b = s.blocks[j], a = s.accStats;
                         out.push(tipSep(),
-                            tipRow(`Pioggia ${hh(b.start)}–${hh(b.end)}`, fmtV(a.mean[j], 'mm'), 'rain'),
+                            tipRow(`Pioggia ${hh(b.start)}–${hh(b.end)}z`, fmtV(a.mean[j], 'mm'), 'rain'),
                             tipRow('Max scenario', fmtV(a.max[j], 'mm'), 'rain'),
                             tipRow('Prob. ≥ 1 mm', pct(probOf(s.members.map(m => m.acc && m.acc[j]), { dir: 'ge', val: 1 })), 'rain'));
-                        if (hlM && hlM.acc) out.push(tipRow(`${hlM.name}`, fmtV(hlM.acc[j], 'mm'), 'rain'));
+                        if (op && op.acc) out.push(tipRow('Oper', fmtV(op.acc[j], 'mm'), 'rain'));
+                        if (hlM && hlM.acc && hlM !== s.oper) out.push(tipRow(hlM.name, fmtV(hlM.acc[j], 'mm'), 'rain'));
                     }
                 }
             } else {
                 const j = blockIndex(s, hoverT);
                 if (j == null) return null;
-                const b = s.blocks[j], st = s.accStats, u = v.unit;
-                out.push(el('div', { className: 't', textContent: `${fmtDayLong.format(b.start)}, ore ${hh(b.start)}–${hh(b.end)}` }));
-                if (hlM && hlM.acc) out.push(el('div', { className: 'hl' }, [el('i', { style: `background:${hlM.color}` }), `${hlM.name}: ${fmtV(hlM.acc[j], u)}`]));
+                const b = s.blocks[j], st = s.cumStats, u = v.unit;
+                if (hlM && hlM.cum) out.push(hlRow(hlM, fmtV(hlM.cum[j], u)));
                 out.push(
-                    tipRow('Media', fmtV(st.mean[j], u)),
+                    tipRow('Ens. mean (totale)', fmtV(st.mean[j], u)),
                     tipRow('Mediana', fmtV(st.median[j], u)),
                     tipRow('10–90%', `${fmtV(st.p10[j])} … ${fmtV(st.p90[j])}`),
                     tipRow('Max scenario', fmtV(st.max[j], u))
                 );
-                if (ctrl && ctrl.acc) out.push(tipRow('Controllo', fmtV(ctrl.acc[j], u)));
-                out.push(tipSep(), tipRow(`Prob. ${thLabel(th, v)}`, pct(probOf(s.members.map(m => m.acc && m.acc[j]), th)), 'th'));
+                if (op && op.cum) out.push(tipRow('Oper', fmtV(op.cum[j], u), '', OPER_COLOR));
+                if (ctrl && ctrl.cum) out.push(tipRow('Control', fmtV(ctrl.cum[j], u), '', CTRL_COLOR));
+                out.push(tipSep(), tipRow(`Nelle 6 h ${hh(b.start)}–${hh(b.end)}z`, fmtV(s.accStats.mean[j], u), 'rain'));
+                if (th.on) out.push(tipRow(`Prob. totale ${thLabel(th, v)}`, pct(probOf(s.members.map(m => m.cum && m.cum[j]), th)), 'th'));
             }
             return out;
         }
@@ -1887,12 +2022,11 @@
         function compareTip(cs) {
             const rows = cs.rows || [];
             if (!rows.length) return null;
-            const out = [el('div', { className: 't', textContent: fmtFull.format(Math.round(hoverT / HOUR) * HOUR) })];
+            const out = [el('div', { className: 't', textContent: `${fmtDayLong.format(hoverT)} ${hh(hoverT)}z` })];
             rows.forEach(r => {
                 if (cmpOff.has(r.key)) return;
-                let val = null;
-                if (r.blocks) { const j = blockIndex(r.s, hoverT); if (j != null) val = r.y[j]; }
-                else if (hoverT <= r.s.xMax) val = r.y[hourIndex(r.s, hoverT)];
+                const k = r.xs.indexOf(hoverT);
+                const val = k < 0 ? null : r.y[k];
                 out.push(tipRow(r.name, r.unit === '%' ? pct(val) : fmtV(val, r.unit), '', r.color));
             });
             return out;
@@ -1902,41 +2036,46 @@
         function modelDatasets(s, off) {
             const v = s.variable, L = state.layers, th = getTh(v);
             const ds = [];
-            const n = s.lastIdx + 1;
-            const pts = arr => { const out = new Array(n); for (let i = 0; i < n; i++) out[i] = { x: s.times[i], y: arr[i] == null ? null : arr[i] }; return out; };
-            const bpts = arr => s.blocks.map((b, j) => ({ x: b.mid, y: arr[j] }));
+            // Un punto ogni 6 ore; per la pioggia il valore sta alla fine delle 6 ore, come su Wetterzentrale
+            const pts = arr => s.pidx.map(i => ({ x: s.times[i], y: arr[i] == null ? null : arr[i] }));
+            const bpts = arr => s.blocks.map((b, j) => ({ x: b.end, y: arr[j] == null ? null : arr[j] }));
             const ctrl = s.members.find(m => m.num === 0);
             const perturbed = s.members.filter(m => m.num > 0);
+            const op = L.oper ? s.oper : null;
             const memberHidden = m => !L.members || off.has(m.name);
 
-            if (v.kind !== 'accum') {
+            if (v.kind !== 'cum') {
                 const st = s.mainStats;
                 if (L.band90) ds.push(bandLow(pts(st.p10)), bandHigh(pts(st.p90), 'rgba(255,255,255,0.13)'));
                 if (L.band50) ds.push(bandLow(pts(st.p25)), bandHigh(pts(st.p75), 'rgba(255,255,255,0.22)'));
                 if (v.kind === 'combo' && L.precip && s.blocks) {
                     perturbed.forEach(m => { if (m.acc) ds.push(line(bpts(m.acc), m.color, 1, { yAxisID: 'y2', _kind: 'member', _m: m.name, hidden: memberHidden(m), order: 7 })); });
-                    if (L.mean) ds.push(line(bpts(s.accStats.mean), '#fff', 1.5, { yAxisID: 'y2', _kind: 'pmean', order: 3 }));
+                    if (ctrl && ctrl.acc && L.control) ds.push(line(bpts(ctrl.acc), CTRL_COLOR, 2, { yAxisID: 'y2', _kind: 'pcontrol', order: 4 }));
+                    if (op && op.acc) ds.push(line(bpts(op.acc), OPER_COLOR, 3, { yAxisID: 'y2', _kind: 'poper', order: 3 }));
+                    if (L.mean) ds.push(line(bpts(s.accStats.mean), MEAN_COLOR, 3, { yAxisID: 'y2', _kind: 'pmean', order: 3 }));
                 }
                 perturbed.forEach(m => { if (m.main) ds.push(line(pts(m.main), m.color, 1, { _kind: 'member', _m: m.name, hidden: memberHidden(m), order: 6 })); });
                 if (ctrl && ctrl.main && L.control) ds.push(line(pts(ctrl.main), CTRL_COLOR, 2, { _kind: 'control', order: 2 }));
+                if (op && op.main) ds.push(line(pts(op.main), OPER_COLOR, 3, { _kind: 'oper', order: 2 }));
                 if (L.median) ds.push(line(pts(st.median), '#fff', 1.5, { _kind: 'median', borderDash: [6, 4], order: 2 }));
-                if (L.mean) ds.push(line(pts(st.mean), '#fff', 2.6, { _kind: 'mean', order: 1 }));
+                if (L.mean) ds.push(line(pts(st.mean), MEAN_COLOR, 3, { _kind: 'mean', order: 1 }));
             } else {
-                const st = s.accStats;
+                const st = s.cumStats;
                 if (L.band90) ds.push(bandLow(bpts(st.p10)), bandHigh(bpts(st.p90), 'rgba(255,255,255,0.13)'));
                 if (L.band50) ds.push(bandLow(bpts(st.p25)), bandHigh(bpts(st.p75), 'rgba(255,255,255,0.22)'));
-                perturbed.forEach(m => { if (m.acc) ds.push(line(bpts(m.acc), m.color, 1, { _kind: 'member', _m: m.name, hidden: memberHidden(m), order: 6 })); });
-                if (ctrl && ctrl.acc && L.control) ds.push(line(bpts(ctrl.acc), CTRL_COLOR, 2, { _kind: 'control', order: 2 }));
+                perturbed.forEach(m => { if (m.cum) ds.push(line(bpts(m.cum), m.color, 1, { _kind: 'member', _m: m.name, hidden: memberHidden(m), order: 6 })); });
+                if (ctrl && ctrl.cum && L.control) ds.push(line(bpts(ctrl.cum), CTRL_COLOR, 2, { _kind: 'control', order: 2 }));
+                if (op && op.cum) ds.push(line(bpts(op.cum), OPER_COLOR, 3, { _kind: 'oper', order: 2 }));
                 if (L.median) ds.push(line(bpts(st.median), '#fff', 1.5, { _kind: 'median', borderDash: [6, 4], order: 2 }));
-                if (L.mean) ds.push(line(bpts(st.mean), '#fff', 2.6, { _kind: 'mean', order: 1 }));
-                ds.push(line(bpts(probSeries(s, th)), '#ffd23f', 1.6, { yAxisID: 'yp', _kind: 'prob', stepped: 'middle', _noFit: true, order: 0 }));
+                if (L.mean) ds.push(line(bpts(st.mean), MEAN_COLOR, 3, { _kind: 'mean', order: 1 }));
+                if (th.on) ds.push(line(bpts(probSeries(s, th)), '#ffd23f', 1.6, { yAxisID: 'yp', _kind: 'prob', _noFit: true, order: 0 }));
             }
             return ds;
         }
 
         function modelTitle(e) {
-            const loc = currentLocation(), v = e.series.variable;
-            return `${loc.name} · ${v.title}` + (e.run ? `  |  corsa ${fmtRun(e.run)}` : '');
+            const loc = currentLocation(), s = e.series;
+            return `${loc.name} · ${s.variable.title}  |  corsa ${fmtRun(new Date(s.init))}`;
         }
 
         function drawEntry(e) {
@@ -1946,18 +2085,14 @@
             e.cs = cs;
             cs.thLine = th.on ? th.val : null;
             cs.thText = `soglia ${thLabel(th, v)}`;
-            cs.fit = v.kind === 'accum' ? { floor: 0 }
-                   : v.max != null ? { fixed: { min: v.min || 0, max: v.max } }
-                   : { floor: v.min != null ? v.min : null };
-            cs.footL = `${e.model.name} Ensemble, ${fmtCoord(s.lat, 'N', 'S')}, ${fmtCoord(s.lon, 'E', 'W')}` + (s.elev != null ? `, ${Math.round(s.elev)} m` : '');
+            cs.axisRule = v.axis;
+            cs.zeroLine = !!v.zero;
+            cs.footL = `${e.model.name} Ensemble, ${fmtGrid(s.lat, 'N', 'S')}, ${fmtGrid(s.lon, 'E', 'W')}`;
             cs.footR = 'open-meteo.com';
 
-            const scales = {
-                x: xAxis(),
-                y: axis({ position: 'left', title: v.kind === 'accum' ? `${v.unit} / 6 h` : v.unit })
-            };
-            if (v.kind === 'combo' && state.layers.precip && s.blocks) scales.y2 = axis({ position: 'right', title: 'mm / 6 h', grid: false });
-            if (v.kind === 'accum') scales.yp = axis({ position: 'right', min: 0, max: 100, title: `prob. ${thLabel(th, v)} (%)`, grid: false });
+            const scales = { x: xAxis(), y: axis({ position: 'left', title: v.axisTitle }) };
+            if (v.kind === 'combo' && state.layers.precip && s.blocks) scales.y2 = axis({ position: 'right', title: 'Precipitazioni (mm / 6 h)', grid: false });
+            if (v.kind === 'cum' && th.on) scales.yp = axis({ position: 'right', min: 0, max: 100, title: `prob. totale ${thLabel(th, v)} (%)`, grid: false });
 
             cs.chart = new Chart(cs.canvas, chartConfig(cs, modelDatasets(s, e.off), scales, modelTitle(e)));
             sizeOverlay(cs, cs.chart.width, cs.chart.height);
@@ -2019,14 +2154,17 @@
                 const it = el('div', { className: 'it' + (state.layers[key] ? '' : ' off'), title: 'Clic: mostra/nascondi su tutti i grafici' },
                     [el('i', { style: `background:${swatch}` }), label]);
                 it.addEventListener('click', () => setLayer(key, !state.layers[key]));
-                if (key === 'control') hoverHL(it, cs, 'Controllo');
+                if (key === 'control') hoverHL(it, cs, 'Control');
+                if (key === 'oper') hoverHL(it, cs, 'Oper');
                 extra.append(it);
             };
-            layerItem('mean', 'Media ens.', '#fff');
+            // Stessi nomi della legenda di Wetterzentrale
+            layerItem('mean', 'Ens. mean', MEAN_COLOR);
+            if (s.oper) layerItem('oper', 'Oper', OPER_COLOR);
+            if (s.members.some(m => m.num === 0)) layerItem('control', 'Control', CTRL_COLOR);
             layerItem('median', 'Mediana', 'repeating-linear-gradient(90deg,#fff 0 4px,transparent 4px 7px)');
-            if (s.members.some(m => m.num === 0)) layerItem('control', 'Controllo', CTRL_COLOR);
             if (v.kind === 'combo') layerItem('precip', 'Pioggia 6 h', RAIN_COLOR);
-            if (v.kind === 'accum') {
+            if (v.kind === 'cum' && getTh(v).on) {
                 extra.append(el('div', { className: 'it static' }, [el('i', { style: 'background:#ffd23f' }), `Prob. ${thLabel(getTh(v), v)}`]));
             }
             if (getTh(v).on) extra.append(el('div', { className: 'it static' }, [el('i', { style: 'background:repeating-linear-gradient(90deg,#ffd23f 0 5px,transparent 5px 8px)' }), 'Soglia']));
@@ -2053,44 +2191,46 @@
                 return;
             }
             const v = currentVariable(), th = getTh(v), mode = state.compareMode;
-            const accum = v.kind === 'accum';
-            const unit = mode === 'prob' ? '%' : (accum ? `${v.unit}` : v.unit);
+            const cum = v.kind === 'cum';
             const datasets = [], rows = [];
 
             ready.forEach(e => {
                 const s = e.series, col = e.model.color, key = e.model.key;
-                const st = accum ? s.accStats : s.mainStats;
-                const xsArr = accum ? s.blocks.map(b => b.mid) : s.times.slice(0, s.lastIdx + 1);
+                // Stessi punti dei grafici dei modelli: ogni 6 ore (o fine dei blocchi di 6 ore per i cumulati)
+                let xs, st;
+                if (cum) { xs = s.blocks.map(b => b.end); st = s.cumStats; }
+                else {
+                    xs = s.pidx.map(i => s.times[i]);
+                    st = {};
+                    Object.keys(s.mainStats).forEach(k => { st[k] = s.pidx.map(i => s.mainStats[k][i]); });
+                }
                 let y;
                 if (mode === 'mean') y = st.mean;
                 else if (mode === 'spread') y = st.p90.map((p, k) => p == null || st.p10[k] == null ? null : p - st.p10[k]);
-                else y = probSeries(s, th);
-                const pts = arr => xsArr.map((x, k) => ({ x, y: arr[k] == null ? null : arr[k] }));
+                else { const ps = probSeries(s, th); y = cum ? ps : s.pidx.map(i => ps[i]); }
+                const pts = arr => xs.map((x, k) => ({ x, y: arr[k] == null ? null : arr[k] }));
                 const hidden = cmpOff.has(key);
                 if (mode === 'mean' && state.layers.band90) {
                     datasets.push(Object.assign(bandLow(pts(st.p10)), { _model: key, hidden }),
                                   Object.assign(bandHigh(pts(st.p90), col + '26'), { _model: key, hidden }));
                 }
-                datasets.push(line(pts(y), col, 2.4, { _model: key, hidden, order: 1, stepped: mode === 'prob' && accum ? 'middle' : false }));
-                rows.push({ key, name: e.model.name, color: col, s, y, blocks: accum, unit: mode === 'prob' ? '%' : (accum ? v.unit : v.unit) });
+                datasets.push(line(pts(y), col, 2.4, { _model: key, _kind: mode === 'mean' ? 'mean' : 'cmp', hidden, order: 1 }));
+                rows.push({ key, name: e.model.name, color: col, xs, y, unit: mode === 'prob' ? '%' : v.unit });
             });
 
             const cs = makeCS(ce.plotEl, { series: null, off: new Set(), rows });
             ce.cs = cs;
             cs.thLine = th.on && mode === 'mean' ? th.val : null;
             cs.thText = `soglia ${thLabel(th, v)}`;
-            cs.fit = mode === 'prob' ? { fixed: { min: 0, max: 100 } }
-                   : mode === 'spread' ? { floor: 0 }
-                   : accum ? { floor: 0 }
-                   : v.max != null ? { fixed: { min: v.min || 0, max: v.max } }
-                   : { floor: v.min != null ? v.min : null };
+            cs.axisRule = mode === 'prob' ? 'pct' : mode === 'spread' ? 'zero' : v.axis;
+            cs.zeroLine = mode === 'mean' && !!v.zero;
             cs.footL = `${currentLocation().name} · ${ready.length} modelli`;
             cs.footR = 'open-meteo.com';
 
             const modeLabel = mode === 'mean' ? 'media degli scenari'
                             : mode === 'spread' ? 'dispersione (90° − 10° percentile)'
-                            : `probabilità ${thLabel(th, v)}`;
-            const yTitle = mode === 'prob' ? '%' : (accum ? `${v.unit} / 6 h` : unit);
+                            : `probabilità ${cum ? 'totale ' : ''}${thLabel(th, v)}`;
+            const yTitle = mode === 'prob' ? 'Probabilità (%)' : mode === 'spread' ? `Dispersione (${v.unit})` : v.axisTitle;
             const scales = { x: xAxis(), y: axis({ position: 'left', title: yTitle }) };
             cs.chart = new Chart(cs.canvas, chartConfig(cs, datasets, scales, `Confronto modelli · ${v.title} · ${modeLabel}`));
             sizeOverlay(cs, cs.chart.width, cs.chart.height);
@@ -2126,6 +2266,7 @@
             const groups = (shift) => {
                 const map = new Map();
                 for (let i = 0; i <= s.lastIdx; i++) {
+                    if (s.times[i] <= s.init) continue;   // solo ore della corsa mostrata
                     const d = dayOf(s.times[i] - shift);
                     if (!map.has(d)) map.set(d, []);
                     map.get(d).push(i);
@@ -2140,13 +2281,13 @@
             };
             const rainDaily = (d) => {
                 const idx = [];
-                for (let i = 0; i <= s.lastIdx; i++) if (dayOf(s.times[i] - HOUR) === d) idx.push(i);
+                for (let i = 0; i <= s.lastIdx; i++) if (s.times[i] > s.init && dayOf(s.times[i] - HOUR) === d) idx.push(i);
                 if (idx.length < 20) return null;
                 return s.members.filter(m => m.hourlyAcc).map(m => sumRange(m.hourlyAcc, idx[0], idx[idx.length - 1]));
             };
 
             const head = [], rows = [];
-            if (v.kind !== 'accum') {
+            if (v.kind !== 'cum') {
                 head.push('Giorno', `Min (${v.unit})`, `Max (${v.unit})`, 'Estremi scenari');
                 if (th.on) head.push(`Prob. ${thLabel(th, v)}`);
                 if (v.kind === 'combo') head.push('Pioggia media', 'Prob. ≥ 1 mm');
@@ -2183,7 +2324,7 @@
             } else {
                 const u = v.unit;
                 head.push('Giorno', `Media (${u})`, '10–90%', 'Max scenario', `Prob. ≥ 1 ${u}/giorno`);
-                if (th.on) head.push(`Prob. ${thLabel(th, v)}`);
+                if (th.on) head.push(`Prob. totale ${thLabel(th, v)}`);
                 groups(HOUR).forEach(([d, idx]) => {
                     const sums = s.members.filter(m => m.hourlyAcc).map(m => sumRange(m.hourlyAcc, idx[0], idx[idx.length - 1]));
                     const valid = sums.filter(x => x != null).sort((a, b) => a - b);
@@ -2196,10 +2337,11 @@
                         cellP(probOf(sums, { dir: 'ge', val: 1 }), '80, 170, 255')
                     ]);
                     if (th.on) {
-                        const js = s.blocks.map((b, j) => j).filter(j => dayOf(s.blocks[j].start) === d);
-                        const withAcc = s.members.filter(m => m.acc);
-                        const hits = withAcc.filter(m => js.some(j => m.acc[j] != null && meets(m.acc[j], th))).length;
-                        tr.append(cellP(js.length ? 100 * hits / withAcc.length : null, '255, 210, 63'));
+                        // totale cumulato dall'inizio della corsa alla fine del giorno
+                        let jEnd = -1;
+                        s.blocks.forEach((b, j) => { if (b.end <= d + DAY) jEnd = j; });
+                        const withCum = s.members.filter(m => m.cum);
+                        tr.append(cellP(jEnd >= 0 ? probOf(withCum.map(m => m.cum[jEnd]), th) : null, '255, 210, 63'));
                     }
                     rows.push(tr);
                 });
@@ -2211,10 +2353,11 @@
                     el('thead', {}, [el('tr', {}, head.map(h => el('th', { textContent: h })))]),
                     el('tbody', {}, rows)
                 ]),
-                el('div', { className: 'daily-note', textContent: v.kind !== 'accum'
+                el('div', { className: 'daily-note', textContent: (v.kind !== 'cum'
                     ? 'Min e Max: mediana tra gli scenari dei valori minimi e massimi del giorno. Estremi: lo scenario più basso e quello più alto. ' +
                       'Probabilità: percentuale di scenari in cui la condizione si verifica almeno una volta nel giorno.'
-                    : 'Totali giornalieri da mezzanotte a mezzanotte (ora locale). Probabilità: percentuale di scenari.' })
+                    : 'Totali del giorno e, per la soglia, totale cumulato dall\'inizio della corsa. Probabilità: percentuale di scenari.') +
+                    ' Giorni in UTC, come su Wetterzentrale.' })
             );
         }
 
@@ -2230,13 +2373,17 @@
             const v = s.variable;
             const num = x => x == null ? '' : String(Math.round(x * 100) / 100).replace('.', ',');
             const lines = [];
-            if (v.kind !== 'accum') {
+            const op = s.oper;
+            if (v.kind !== 'cum') {
                 const ms = s.members.filter(m => m.main), st = s.mainStats;
-                const head = ['ora', ...ms.map(m => m.name), 'media', 'mediana', 'p10', 'p90'];
+                const head = ['ora_utc', ...ms.map(m => m.name), 'media', 'mediana', 'p10', 'p90'];
+                if (op && op.main) head.push('oper');
                 if (v.kind === 'combo') head.push('pioggia_media_1h');
                 lines.push(head.join(';'));
                 for (let i = 0; i <= s.lastIdx; i++) {
+                    if (s.times[i] <= s.init) continue;
                     const row = [s.labels[i], ...ms.map(m => num(m.main[i])), num(st.mean[i]), num(st.median[i]), num(st.p10[i]), num(st.p90[i])];
+                    if (op && op.main) row.push(num(op.main[i]));
                     if (v.kind === 'combo') {
                         const vals = s.members.filter(m => m.hourlyAcc).map(m => m.hourlyAcc[i]).filter(x => x != null);
                         row.push(num(vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : null));
@@ -2245,8 +2392,9 @@
                 }
             } else {
                 const ms = s.members.filter(m => m.hourlyAcc);
-                lines.push(['ora', ...ms.map(m => m.name), 'media'].join(';'));
+                lines.push(['ora_utc', ...ms.map(m => m.name), 'media'].join(';'));
                 for (let i = 0; i <= s.lastIdx; i++) {
+                    if (s.times[i] <= s.init) continue;
                     const vals = ms.map(m => m.hourlyAcc[i]);
                     const valid = vals.filter(x => x != null);
                     lines.push([s.labels[i], ...vals.map(num), num(valid.length ? valid.reduce((a, b) => a + b, 0) / valid.length : null)].join(';'));
@@ -2494,14 +2642,16 @@
                     return;
                 }
 
-                fetchEnsemble(m, loc, variable.om).then(data => {
+                // Scenari, orario della corsa e corsa operativa insieme
+                Promise.all([fetchEnsemble(m, loc, variable.om), fetchRun(m), fetchOper(m, loc, variable.om)]).then(([data, run, oper]) => {
                     if (token !== renderToken) return;
-                    const s = processSeries(data, variable, m);
+                    const s = processSeries(data, variable, m, run, oper);
                     if (!s) {
                         e.na = true;
                         setEntryStatus(e, 'na', `Nessun dato di «${variable.label}» per ${m.name}.`);
                     } else {
                         e.series = s;
+                        e.card.facts.textContent = `${m.facts} · corsa ${fmtRun(new Date(s.init))}`;
                         drawEntry(e);
                         updateGlobals();
                     }
@@ -2511,16 +2661,6 @@
                     e.failed = true;
                     setEntryStatus(e, 'error', 'Errore nel caricamento dei dati: ' + err.message);
                     drawCompare();
-                });
-
-                fetchRun(m).then(d => {
-                    if (token !== renderToken || !d) return;
-                    e.run = d;
-                    e.card.facts.textContent = `${m.facts} · corsa ${fmtRun(d)}`;
-                    if (e.cs && e.cs.chart) {
-                        e.cs.chart.options.plugins.title.text = modelTitle(e);
-                        e.cs.chart.update('none');
-                    }
                 });
             });
             drawCompare();
