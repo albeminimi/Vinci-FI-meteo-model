@@ -55,6 +55,12 @@ Impostazioni → Avvio. Nella `<head>` uno script applica subito il tema salvato
   Pioggia a 6 h sulla destra 0–40 mm; precipitazioni cumulate 0–45 mm; vento in m/s; linea dello zero per T2m.
   Scala temperatura: fondo = floor10(min media − 0,6·ampiezza media − 10), cima = ceil5(max + 0,2·ampiezza);
   tacche ≥ 2 (ogni 2 fino a ~35 di ampiezza, poi ogni 5). Combacia quasi sempre; a volte WZ ha +5 in alto.
+- Aspetto copiato dalle loro immagini (850×620; senza legenda 728×620, cornice a 41/40/30/60 px da sx/dx/alto/basso):
+  griglia tratteggiata 4-2 `#28281e`, cornice `#dadada`, zero bianco 1 px, tacchette interne ogni 1 mm sulla scala
+  della pioggia; scritte assi 11 px, titolo e piè di pagina 16 px; date "26Nov 00z" (mesi in italiano) con ~15 righe
+  verticali e una data ogni due righe. Il riquadro del grafico ha proporzioni 728:620 (max 600 px di altezza) e
+  tutte le misure scalano con le sue dimensioni (`wzSizes`/`applyWZSize`), con un minimo leggibile sul telefono
+  (assi 7 px, titolo 9, piè di pagina 8; le date possono scendere a 6 px prima di diradarsi).
 - Manca solo la linea del clima 1991–2020 (non disponibile su Open-Meteo).
 
 ## Come lavorare

@@ -498,11 +498,12 @@
         .empty { text-align: center; color: var(--muted); padding: 60px 0; }
 
         /* ---------- Pannello in stile Wetterzentrale ---------- */
-        .wz-panel { display: flex; background: #000; }
+        /* Proporzioni del riquadro come le immagini di Wetterzentrale (728×620 senza la legenda) */
+        .wz-panel { position: relative; background: #000; }
+        .wz-panel.with-legend { padding-left: 150px; }
         .wz-legend {
+            position: absolute; left: 0; top: 0; bottom: 0;
             width: 150px;
-            flex-shrink: 0;
-            max-height: 470px;
             overflow-y: auto;
             padding: 10px 6px 10px 10px;
             border-right: 1px solid #1c1c1c;
@@ -529,11 +530,10 @@
         .wz-legend .extra .it.static { cursor: default; }
         .wz-legend .extra .it.static:hover { background: none; }
 
-        .wz-plot { position: relative; flex: 1; min-width: 0; height: 470px; }
+        .wz-plot { position: relative; width: 100%; min-width: 0; aspect-ratio: 728 / 620; max-height: 600px; }
         .wz-plot canvas.ov { position: absolute; inset: 0; width: 100%; height: 100%; touch-action: pan-y; cursor: crosshair; }
         .wz-plot .status { color: #aaa; }
-        .chart-card.full .wz-plot { height: calc(100vh - 110px); }
-        .chart-card.full .wz-legend { max-height: calc(100vh - 110px); }
+        .chart-card.full .wz-plot { aspect-ratio: auto; max-height: none; height: calc(100vh - 110px); }
 
         .wz-tip {
             position: absolute; z-index: 5;
@@ -575,9 +575,10 @@
         .daily-note { font-size: 11.5px; color: var(--muted); margin-top: 8px; line-height: 1.5; }
 
         @media (max-width: 760px) {
-            .wz-panel { flex-direction: column; }
-            .wz-plot { order: 1; flex: none; height: 340px; }
-            .wz-legend { order: 2; width: auto; max-height: none; border-right: 0; border-top: 1px solid #1c1c1c; font-size: 11px; }
+            .wz-panel { display: flex; flex-direction: column; }
+            .wz-panel.with-legend { padding-left: 0; }
+            .wz-plot { order: 1; flex: none; }
+            .wz-legend { position: static; order: 2; width: auto; border-right: 0; border-top: 1px solid #1c1c1c; font-size: 11px; }
             .wz-legend .ltoggle {
                 display: block; width: 100%; margin-bottom: 6px; padding: 6px 10px;
                 text-align: left; font-size: 12px;
@@ -1241,7 +1242,6 @@
         // In entrambi i casi le ore si leggono e si formattano in UTC, così restano invariate.
         const HOUR = 3600e3, DAY = 86400e3;
         const parseTime = t => Date.parse(t + ':00Z');
-        const fmtDM = new Intl.DateTimeFormat('it-IT', { day: 'numeric', month: 'short', timeZone: 'UTC' });
         const fmtDayLong = new Intl.DateTimeFormat('it-IT', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' });
         const fmtFull = new Intl.DateTimeFormat('it-IT', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', timeZone: 'UTC' });
         const hh = t => String(new Date(t).getUTCHours()).padStart(2, '0');
@@ -1522,46 +1522,119 @@
         const bandLow = data => ({ data, borderWidth: 0, pointRadius: 0, fill: false, _kind: 'band', order: 9 });
         const bandHigh = (data, color) => ({ data, borderWidth: 0, pointRadius: 0, fill: '-1', backgroundColor: color, _kind: 'band', order: 9 });
 
+        // ---------- Misure dei meteogrammi di Wetterzentrale ----------
+        // Le loro immagini sono 850×620 px; tolta la legenda a sinistra resta un riquadro di 728×620 con la cornice
+        // a 41 px da sinistra, 40 da destra, 30 dall'alto e 60 dal basso. Scritte degli assi 11 px, titolo e piè di
+        // pagina 16 px. Griglia tratteggiata (4 pieno, 2 vuoto) verde-grigio scuro, cornice chiara, linea dello zero bianca.
+        // Qui tutto viene scalato sulle dimensioni del grafico, come se fosse la loro immagine ingrandita o rimpicciolita.
+        const WZ_BOX = { w: 728, h: 620 };
+        const WZ_GRID = '#28281e', WZ_FRAME = '#dadada';
+        const CHART_FONT = "'Helvetica Neue', Helvetica, Arial, sans-serif";
+        const MON_WZ = ['Gen', 'Feb', 'Mar', 'Apr', 'Mag', 'Giu', 'Lug', 'Ago', 'Set', 'Ott', 'Nov', 'Dic'];
+        const fmtWZDate = t => { const d = new Date(t); return `${String(d.getUTCDate()).padStart(2, '0')}${MON_WZ[d.getUTCMonth()]} ${hh(t)}z`; };
+        const fmtTick = new Intl.NumberFormat('it-IT', { maximumFractionDigits: 1, useGrouping: false });   // 1045, non 1,045
+        const measureCtx = document.createElement('canvas').getContext('2d');
+        const textW = (text, size, bold) => { measureCtx.font = `${bold ? 'bold ' : ''}${size}px ${CHART_FONT}`; return measureCtx.measureText(text).width; };
+
+        // Dimensioni delle scritte per un grafico largo w e alto h (sul telefono non scendono sotto un minimo leggibile)
+        const WZ_MIN = { tick: 7, title: 9, foot: 8 };
+        function wzSizes(w, h) {
+            const k = Math.min(w / WZ_BOX.w, h / WZ_BOX.h) || 1;
+            const px = (v, min) => Math.max(min, Math.round(v * k * 10) / 10);
+            // Griglia e cornice: 1 px come su WZ, più sottili quando il grafico è più piccolo (minimo mezzo pixel)
+            const line = Math.max(0.5, Math.min(1, Math.round(k * 10) / 10));
+            return { k, line, tick: px(11, WZ_MIN.tick), title: px(16, WZ_MIN.title), foot: px(16, WZ_MIN.foot) };
+        }
+
         function axis(opts) {
             return {
                 position: opts.position,
                 min: opts.min, max: opts.max,
                 title: { display: true, text: opts.title, color: '#fff', font: { size: 11 } },
-                ticks: { color: '#fff', font: { size: 11 }, stepSize: opts.step, includeBounds: false },
-                grid: { color: opts.grid === false ? 'transparent' : 'rgba(255,255,255,0.22)' },
-                border: { color: '#777', dash: [2, 3] }
+                ticks: { color: '#fff', font: { size: 11 }, stepSize: opts.step, includeBounds: false, autoSkipPadding: 2, callback: v => fmtTick.format(v) },
+                grid: { display: opts.grid !== false, color: WZ_GRID, lineWidth: 1, drawTicks: false, tickLength: 0 },
+                border: { display: false, dash: [4, 2] },
+                afterFit: tightFit
             };
         }
 
-        const isMidnight = v => ((v % DAY) + DAY) % DAY === 0;
+        // Chart.js lascia lo stesso spazio prima e dopo i numeri; verso il titolo dell'asse ne basta poco, come su WZ
+        const tightFit = s => {
+            const p = s.options.ticks.padding || 0, cut = Math.max(0, p - 2);
+            if (s.isHorizontal()) s.height -= cut; else s.width -= cut;
+        };
 
-        function xAxis() {
+        function xAxis(cs) {
             return {
                 type: 'linear',
-                title: { display: true, text: 'Data (UTC)', color: '#fff', font: { size: 10 }, padding: 0 },
-                grid: { color: ctx => ctx.tick && isMidnight(ctx.tick.value) ? 'rgba(255,255,255,0.3)' : 'rgba(255,255,255,0.11)' },
-                border: { color: '#777', dash: [2, 3] },
+                title: { display: true, text: 'Data (UTC)', color: '#fff', font: { size: 11 }, padding: 0 },
+                grid: { color: WZ_GRID, lineWidth: 1, drawTicks: false, tickLength: 0 },
+                border: { display: false, dash: [4, 2] },
+                afterFit: tightFit,
                 afterBuildTicks: ax => {
                     const min = ax.min, max = ax.max;
                     if (!isFinite(min) || !isFinite(max) || max <= min) return;
-                    const ppd = (ax.width || 600) / ((max - min) / DAY);
-                    ax._ppd = ppd;
-                    // Come su Wetterzentrale: linee ogni giorno, etichette "26 nov 00z" ogni 1–2 giorni
-                    ax._step = Math.max(1, Math.ceil(84 / ppd));
-                    ax._d0 = Math.floor(min / DAY) * DAY;   // etichette contate dal giorno della corsa
-                    const sub = ppd >= 480 ? 3 * HOUR : ppd >= 240 ? 6 * HOUR : ppd >= 120 ? 12 * HOUR : DAY;
+                    // Come su Wetterzentrale: circa 15 righe verticali (ogni giorno per 15 giorni, ogni 12 ore per 7 giorni)
+                    // e una data ogni due righe ("26Nov 00z", "28Nov 00z"…), contata dal giorno della corsa
+                    const span = max - min;
+                    const sub = [HOUR, 3 * HOUR, 6 * HOUR, 12 * HOUR, DAY, 2 * DAY, 4 * DAY].find(st => span / st <= 16.5) || 8 * DAY;
+                    // Se sul telefono le date non ci stanno, prima si rimpiccioliscono un poco, poi si diradano
+                    const base = (cs.wz && cs.wz.tick) || 11;
+                    const room = (ax.width || 600) * sub / span;   // pixel tra due righe
+                    const need = f => textW('28Nov 00z', f) + f * 0.4;
+                    let every = 2, fs = base;
+                    if (room * 2 < need(base)) {
+                        const f2 = Math.max(6, Math.floor(base * room * 2 / need(base) * 10) / 10);
+                        if (room * 2 >= need(f2)) fs = f2;
+                    }
+                    while (every < 16 && room * every < need(fs)) every *= 2;
+                    cs.xFont = fs;
+                    ax._lab = sub * every;
+                    ax._d0 = Math.floor(min / DAY) * DAY;
                     const ticks = [];
                     for (let t = Math.ceil(min / sub) * sub; t <= max; t += sub) ticks.push({ value: t });
                     ax.ticks = ticks;
                 },
                 ticks: {
-                    color: '#fff', font: { size: 11 }, maxRotation: 0, autoSkip: false,
+                    color: '#fff', font: () => ({ size: cs.xFont || (cs.wz && cs.wz.tick) || 11, family: CHART_FONT }),
+                    maxRotation: 0, autoSkip: false,
                     callback: function (v) {
-                        if (isMidnight(v)) return Math.round((v - this._d0) / DAY) % this._step === 0 ? `${fmtDM.format(v)} 00z` : '';
-                        return this._ppd >= 240 ? `${hh(v)}z` : '';
+                        const r = (v - this._d0) / this._lab;
+                        return Math.abs(r - Math.round(r)) < 1e-6 ? fmtWZDate(v) : '';
                     }
                 }
             };
+        }
+
+        // Applica le misure di Wetterzentrale alle opzioni del grafico (alla creazione e a ogni ridimensionamento)
+        function applyWZSize(cs, o, w, h) {
+            if (!w || !h) return;
+            const z = cs.wz = wzSizes(w, h), k = z.k, sc = o.scales;
+            const right = sc.y2 || sc.yp;
+            // Sotto: date e "Data (UTC)", poi il piè di pagina che sta sulla stessa riga di "Data (UTC)" quando c'è spazio
+            o.layout.padding = { left: Math.round(1 * k), right: right ? Math.round(4 * k) : Math.round(40 * k), top: 0, bottom: Math.round(z.foot * 1.5) };
+            const t = o.plugins.title;
+            const tw = textW(t.text || '', z.title, true);
+            const size = tw > w - 8 ? Math.max(7, Math.floor(z.title * (w - 8) / tw * 10) / 10) : z.title;
+            t.font = { size, weight: 'bold', family: CHART_FONT };
+            t.padding = { top: Math.round(2 * k), bottom: Math.max(4, Math.round(9 * k)) };
+            const axisT = { size: z.tick, family: CHART_FONT };
+            const dash = [Math.max(1.5, 4 * k), Math.max(1, 2 * k)];
+            Object.values(sc).forEach(a => {
+                if (a.grid) a.grid.lineWidth = z.line;
+                if (a.border) a.border.dash = dash;
+            });
+            sc.x.ticks.padding = Math.max(3, Math.round(6 * k));
+            sc.x.title.font = axisT;
+            sc.x.title.padding = { top: Math.max(1, Math.round(2 * k)), bottom: 0 };
+            ['y', 'y2', 'yp'].forEach(id => {
+                const a = sc[id];
+                if (!a) return;
+                a.ticks.font = axisT;
+                a.ticks.padding = Math.max(3, Math.round((id === 'y' ? 10 : 7) * k));
+                a.title.font = axisT;
+                a.title.padding = { top: Math.round(3 * k), bottom: 0 };
+            });
         }
 
         // Plugin: sfondo nero, soglia, piè di pagina
@@ -1579,18 +1652,36 @@
         function decorPlugin(cs) {
             return {
                 id: 'wzDecor',
+                // Linea dello zero, cornice e tacche della pioggia come su Wetterzentrale (sotto le linee dei dati)
                 beforeDatasetsDraw(c) {
-                    if (!cs.zeroLine || !c.scales.y) return;
-                    const y = c.scales.y, a = c.chartArea;
-                    if (y.min > 0 || y.max < 0) return;
-                    const py = y.getPixelForValue(0), ctx = c.ctx;
+                    const a = c.chartArea, ctx = c.ctx, y = c.scales.y, z = cs.wz || wzSizes(c.width, c.height), k = z.k;
+                    const d = c.currentDevicePixelRatio || 1, dw = Math.max(1, Math.round(z.line * d));
+                    const crisp = v => (Math.round(v * d) + (dw % 2) / 2) / d;
                     ctx.save();
-                    ctx.strokeStyle = '#e6e6e6';
-                    ctx.lineWidth = 1.5;
-                    ctx.beginPath();
-                    ctx.moveTo(a.left, py);
-                    ctx.lineTo(a.right, py);
-                    ctx.stroke();
+                    ctx.lineWidth = dw / d;
+                    if (cs.zeroLine && y && y.min < 0 && y.max > 0) {
+                        const py = crisp(y.getPixelForValue(0));
+                        ctx.strokeStyle = '#fff';
+                        ctx.beginPath();
+                        ctx.moveTo(a.left, py);
+                        ctx.lineTo(a.right, py);
+                        ctx.stroke();
+                    }
+                    const L = crisp(a.left), R = crisp(a.right), T = crisp(a.top), B = crisp(a.bottom);
+                    ctx.strokeStyle = WZ_FRAME;
+                    ctx.strokeRect(L, T, R - L, B - T);
+                    // Scala della pioggia: tacchette interne ogni 1 mm, più lunghe ogni 2 mm
+                    const y2 = c.scales.y2;
+                    if (y2 && y2.max - y2.min <= 60) {
+                        ctx.beginPath();
+                        for (let v = Math.ceil(y2.min) + 1; v < y2.max; v++) {
+                            const py = crisp(y2.getPixelForValue(v));
+                            const len = Math.max(2, (v % 2 ? 3 : 5) * k);
+                            ctx.moveTo(R - len, py);
+                            ctx.lineTo(R, py);
+                        }
+                        ctx.stroke();
+                    }
                     ctx.restore();
                 },
                 afterDatasetsDraw(c) {
@@ -1609,25 +1700,31 @@
                     ctx.stroke();
                     ctx.setLineDash([]);
                     ctx.fillStyle = '#ffd23f';
-                    ctx.font = 'bold 11px Arial, sans-serif';
+                    ctx.font = `bold ${cs.wz ? cs.wz.tick : 11}px ${CHART_FONT}`;
                     ctx.textAlign = 'right';
                     ctx.textBaseline = 'bottom';
                     ctx.fillText(cs.thText || '', a.right - 4, py - 3);
                     ctx.restore();
                 },
+                // Piè di pagina come su Wetterzentrale: a sinistra modello e punto di griglia, a destra la fonte,
+                // sulla stessa riga di "Data (UTC)" (si rimpicciolisce un po' se non c'è spazio)
                 afterDraw(c) {
-                    const ctx = c.ctx, a = c.chartArea;
+                    const ctx = c.ctx, a = c.chartArea, z = cs.wz || wzSizes(c.width, c.height), k = z.k;
+                    const footL = cs.footL || '', footR = cs.footR || '';
+                    const mid = (a.left + a.right) / 2, half = textW('Data (UTC)', z.tick) / 2 + Math.max(6, 10 * k);
+                    const x0 = Math.max(2, Math.round(2 * k)), x1 = a.right - Math.round(18 * k);
+                    let fs = z.foot;
+                    while (fs > 6 && x0 + textW(footL, fs) > mid - half) fs -= 0.5;
                     ctx.save();
                     ctx.fillStyle = '#fff';
-                    ctx.font = '11px Arial, sans-serif';
-                    ctx.textBaseline = 'bottom';
+                    ctx.font = `${fs}px ${CHART_FONT}`;
+                    ctx.textBaseline = 'alphabetic';
                     ctx.textAlign = 'left';
-                    ctx.fillText(cs.footL || '', a.left, c.height - 3);
-                    // Il testo a destra solo se c'è spazio
-                    const wl = ctx.measureText(cs.footL || '').width, wr = ctx.measureText(cs.footR || '').width;
-                    if (a.left + wl + 12 + wr <= a.right) {
+                    const yb = c.height - Math.max(3, Math.round(17 * k));
+                    ctx.fillText(footL, x0, yb);
+                    if (x1 - ctx.measureText(footR).width >= mid + half) {
                         ctx.textAlign = 'right';
-                        ctx.fillText(cs.footR || '', a.right, c.height - 3);
+                        ctx.fillText(footR, x1, yb);
                     }
                     ctx.restore();
                 }
@@ -1668,8 +1765,7 @@
         }
 
         function chartConfig(cs, datasets, scales, title) {
-            const small = cs.plotEl.clientWidth < 520;
-            return {
+            const config = {
                 type: 'line',
                 data: { datasets },
                 options: {
@@ -1680,17 +1776,23 @@
                     normalized: true,
                     spanGaps: true,
                     events: [],
-                    layout: { padding: { left: 4, right: 10, top: 0, bottom: 18 } },
+                    layout: { padding: 0 },
                     plugins: {
                         legend: { display: false },
                         tooltip: { enabled: false },
-                        title: { display: true, text: title, color: '#fff', font: { size: small ? 11 : 13, weight: 'bold' }, padding: { top: 8, bottom: 8 } }
+                        title: { display: true, text: title, color: '#fff', font: { size: 16, weight: 'bold' } }
                     },
                     scales,
-                    onResize: (c, size) => { sizeOverlay(cs, size.width, size.height); scheduleOverlays(); }
+                    onResize: (c, size) => {
+                        applyWZSize(cs, c.config.options, size.width, size.height);
+                        sizeOverlay(cs, size.width, size.height);
+                        scheduleOverlays();
+                    }
                 },
                 plugins: [bgPlugin, decorPlugin(cs)]
             };
+            applyWZSize(cs, config.options, cs.plotEl.clientWidth, cs.plotEl.clientHeight);
+            return config;
         }
 
         // Scale come nei meteogrammi di Wetterzentrale (regole ricavate dalle loro immagini)
@@ -2090,7 +2192,7 @@
             cs.footL = `${e.model.name} Ensemble, ${fmtGrid(s.lat, 'N', 'S')}, ${fmtGrid(s.lon, 'E', 'W')}`;
             cs.footR = 'open-meteo.com';
 
-            const scales = { x: xAxis(), y: axis({ position: 'left', title: v.axisTitle }) };
+            const scales = { x: xAxis(cs), y: axis({ position: 'left', title: v.axisTitle }) };
             if (v.kind === 'combo' && state.layers.precip && s.blocks) scales.y2 = axis({ position: 'right', title: 'Precipitazioni (mm / 6 h)', grid: false });
             if (v.kind === 'cum' && th.on) scales.yp = axis({ position: 'right', min: 0, max: 100, title: `prob. totale ${thLabel(th, v)} (%)`, grid: false });
 
@@ -2231,7 +2333,7 @@
                             : mode === 'spread' ? 'dispersione (90° − 10° percentile)'
                             : `probabilità ${cum ? 'totale ' : ''}${thLabel(th, v)}`;
             const yTitle = mode === 'prob' ? 'Probabilità (%)' : mode === 'spread' ? `Dispersione (${v.unit})` : v.axisTitle;
-            const scales = { x: xAxis(), y: axis({ position: 'left', title: yTitle }) };
+            const scales = { x: xAxis(cs), y: axis({ position: 'left', title: yTitle }) };
             cs.chart = new Chart(cs.canvas, chartConfig(cs, datasets, scales, `Confronto modelli · ${v.title} · ${modeLabel}`));
             sizeOverlay(cs, cs.chart.width, cs.chart.height);
             ce.plotEl.classList.add('loaded');
@@ -2556,7 +2658,7 @@
             const tip = el('div', { className: 'wz-tip' });
             const plotEl = el('div', { className: 'wz-plot' }, [tip, box]);
             const legendEl = el('div', { className: 'wz-legend' });
-            const panel = el('div', { className: 'wz-panel' }, withLegend ? [legendEl, plotEl] : [plotEl]);
+            const panel = el('div', { className: 'wz-panel' + (withLegend ? ' with-legend' : '') }, withLegend ? [legendEl, plotEl] : [plotEl]);
             return { panel, plotEl, legendEl, status: label };
         }
 
